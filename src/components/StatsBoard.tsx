@@ -54,6 +54,13 @@ const COLUMNS: Column[] = [
   { key: 'dPts', label: 'Δ PTS', title: 'Adjusted pace minus points actually scored — counts games missed as well as context', digits: 0, signed: true },
 ]
 
+/** Twelve columns read as noise; three labelled bands read as an argument. */
+const GROUPS = [
+  { label: 'Market', from: 2, to: 4 },
+  { label: 'Per game', from: 5, to: 9 },
+  { label: 'Season', from: 10, to: 12 },
+]
+
 const fmt = (v: number | null, digits = 1, signed = false) => {
   if (v == null) return '—'
   const s = v.toFixed(digits)
@@ -177,6 +184,19 @@ export function StatsBoard() {
             Hide drafted
           </label>
 
+          {/* The header doubles as the sort control on a desktop; a phone hides it, so sorting moves here. */}
+          <label className="check sort-picker">
+            Sort
+            <select value={sortKey} onChange={(e) => setSortKey(e.target.value as Key)}>
+              {COLUMNS.map((col) => (
+                <option key={col.key} value={col.key}>{col.label}</option>
+              ))}
+            </select>
+            <button className="btn ghost sm" onClick={() => setDesc((d) => !d)} aria-label="Reverse sort">
+              {desc ? '▾' : '▴'}
+            </button>
+          </label>
+
           <span className="spacer" />
           <span className="small dim">
             {visible.length} players · {movers} with games removed
@@ -186,10 +206,15 @@ export function StatsBoard() {
         <div className="stats-wrap">
           <div className="stats-head">
             <span className="sh-player">Player</span>
+            {GROUPS.map((g) => (
+              <span key={g.label} className="sh-group" style={{ gridColumn: `${g.from} / ${g.to + 1}` }}>
+                {g.label}
+              </span>
+            ))}
             {COLUMNS.map((col) => (
               <button
                 key={col.key}
-                className={`sh-num ${sortKey === col.key ? 'on' : ''}`}
+                className={`sh-num ${sortKey === col.key ? 'on' : ''} ${col.signed ? 'is-spread' : ''}`}
                 title={col.title}
                 onClick={() => sortBy(col)}
               >
@@ -233,19 +258,27 @@ export function StatsBoard() {
                     </span>
                   </span>
 
-                  <span className="sh-num">{r.rank === Number.MAX_SAFE_INTEGER ? '—' : r.rank}</span>
-                  <span className="sh-num dim">{fmtAdp(r.adp)}</span>
-                  <span className="sh-num dim">
+                  <span className="sh-num rank-cell" data-label="Rank">
+                    {r.rank === Number.MAX_SAFE_INTEGER ? '—' : r.rank}
+                  </span>
+                  <span className="sh-num dim" data-label="ADP">{fmtAdp(r.adp)}</span>
+                  <span className="sh-num dim" data-label="Games">
                     {r.gp == null ? '—' : r.dropped ? `${r.cleanGp}/${r.gp}` : r.gp}
                   </span>
-                  <span className="sh-num">{fmt(r.rawPpg)}</span>
-                  <span className="sh-num strong">{fmt(r.adjPpg)}</span>
-                  <span className={`sh-num spread ${spreadTone(r.dPpg, 0.5)}`}>{fmt(r.dPpg, 1, true)}</span>
-                  <span className="sh-num">{fmt(r.luckPpg)}</span>
-                  <span className={`sh-num spread ${spreadTone(r.dLuck, 0.5)}`}>{fmt(r.dLuck, 1, true)}</span>
-                  <span className="sh-num">{fmt(r.rawPts)}</span>
-                  <span className="sh-num strong">{fmt(r.adjPace, 0)}</span>
-                  <span className={`sh-num spread ${spreadTone(r.dPts, 10)}`}>{fmt(r.dPts, 0, true)}</span>
+                  <span className="sh-num" data-label="PPG">{fmt(r.rawPpg)}</span>
+                  <span className="sh-num strong" data-label="Adj PPG">{fmt(r.adjPpg)}</span>
+                  <span className={`sh-num spread ${spreadTone(r.dPpg, 0.5)}`} data-label="Δ PPG">
+                    {fmt(r.dPpg, 1, true)}
+                  </span>
+                  <span className="sh-num" data-label="Luck PPG">{fmt(r.luckPpg)}</span>
+                  <span className={`sh-num spread ${spreadTone(r.dLuck, 0.5)}`} data-label="Δ Luck">
+                    {fmt(r.dLuck, 1, true)}
+                  </span>
+                  <span className="sh-num" data-label="Pts">{fmt(r.rawPts)}</span>
+                  <span className="sh-num strong" data-label="Adj pace">{fmt(r.adjPace, 0)}</span>
+                  <span className={`sh-num spread ${spreadTone(r.dPts, 10)}`} data-label="Δ Pts">
+                    {fmt(r.dPts, 0, true)}
+                  </span>
                 </div>
               )
             })}

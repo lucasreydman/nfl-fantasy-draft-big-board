@@ -24,6 +24,8 @@ Twelve columns: your rank, ADP, games (clean/played), raw PPG, adjusted PPG, **�
 
 The three spread columns are the point of it. Sort by **Δ PPG** and the top of the table is players whose averages were held down by circumstance rather than ability — Chase Brown at +4.4 (seven games with Cincinnati's starting quarterback), Jonathan Taylor +3.5, Drake London +2.9. Sort by **Δ LUCK** and you get touchdown regression in both directions: CeeDee Lamb and Justin Jefferson at +1.7 scored well under what their opportunity implied, and flipping the sort surfaces the players who scored well over it. **Δ PTS** is the season-level version and deliberately counts games missed as well as games removed, so a healthy pace stands out against a truncated season.
 
+**Install it.** The app ships a web manifest, generated PNG icons and a service worker, so *Add to Home Screen* gives you a standalone app with no browser chrome — and one that still opens with the server unreachable, which is the state a phone is usually in at a draft table. The layout is built for that: below 760px the columns that don't earn their space drop out, the secondary toolbar folds behind **Tools**, the player card becomes a sheet you pull up over the list, and the luck table's rows reflow into cards using the labels each cell already carries.
+
 **Mock Draft** — 10-team snake (8/12/14 also available, 10–18 rounds).
 
 - Full snake grid with the live pick highlighted and your column called out.
@@ -38,7 +40,10 @@ Drafted players gray out on the big board, so the two views stay in sync. Everyt
 
 Two public sources, merged at build time into `src/data/players.json`:
 
-- **[FantasyFootballCalculator](https://fantasyfootballcalculator.com)** — live consensus ADP from real 10-team PPR mocks, plus half-PPR/standard ADP, draft ranges, and bye weeks.
+- **[Sleeper](https://docs.sleeper.com) ADP** — the consensus the board is ordered by, taken from real Sleeper redraft leagues in PPR, half-PPR and standard.
+- **[FantasyFootballCalculator](https://fantasyfootballcalculator.com)** — a second opinion on the same players, plus the draft range, standard deviation and sample size Sleeper doesn't publish, and bye weeks.
+
+FFC was the sole source until its `teams` parameter turned out to be decorative: 8-, 10-, 12- and 14-team requests return byte-identical numbers while echoing your value back in `meta`, so no request to it is league-size-specific no matter what it claims. It also runs its own mocks rather than real leagues, and the two markets can disagree sharply — FFC had Brock Bowers at 38.0 while Sleeper drafts him at 22.6. The card shows both and calls out any split of eight picks or more, because a disagreement that size is information, not noise.
 - **[Sleeper](https://docs.sleeper.com)** — player metadata (team, age, size, experience, college, injury status), **all 18 weekly stat logs** from last season, this season's projections, and the headshots/team logos served from `sleepercdn.com`. Season lines are rebuilt from the weekly rows rather than taken as totals, which is what makes the adjusted view below possible. Usage shares are computed against each team's own totals for targets and carries, over the same weeks the player is being measured on. The comparison pool is every player at the position who cleared 6 games and 20% of his team's snaps — 71 running backs, 159 receivers — so a share is ranked against real roles, not against backups who played two snaps.
 
 ### Adjusted stats

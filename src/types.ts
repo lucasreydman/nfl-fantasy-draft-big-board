@@ -95,7 +95,11 @@ export interface Player {
   pos: Pos
   team: string | null
   bye: number | null
+  /** Consensus ADP the board is ordered by — Sleeper redraft where available. */
   adp: number
+  adpSource: 'sleeper' | 'ffc'
+  /** FantasyFootballCalculator's PPR ADP, kept as a second opinion on the same player. */
+  adpFfc: number | null
   adpHalf: number | null
   adpStd: number | null
   stdev: number | null

@@ -22,12 +22,12 @@ export function BoardHeader() {
       <span />
       <span>Player</span>
       <span>Pos</span>
-      <span>Team</span>
-      <span className="ta-r">Bye</span>
+      <span className="row-team">Team</span>
+      <span className="ta-r row-bye">Bye</span>
       <span className="ta-r">ADP</span>
-      <span className="ta-r">Cons</span>
+      <span className="ta-r row-cons">Cons</span>
       <span className="ta-r">Vs</span>
-      <span />
+      <span className="row-actions" />
     </div>
   )
 }
@@ -91,9 +91,9 @@ export const PlayerRow = memo(function PlayerRow({
 
       <div><span className="pos-chip">{player.pos}{posRank}</span></div>
       <div className="row-team">{player.team ?? 'FA'}</div>
-      <div className="row-num dim">{player.bye ?? '\u2014'}</div>
+      <div className="row-num dim row-bye">{player.bye ?? '\u2014'}</div>
       <div className="row-num">{fmtAdp(player.adp)}</div>
-      <div className="row-num dim">#{player.rank}</div>
+      <div className="row-num dim row-cons">#{player.rank}</div>
       <div className={`row-num row-delta ${!delta ? '' : delta > 0 ? 'up' : 'down'}`}>
         {delta ? `${delta > 0 ? '+' : ''}${delta}` : '\u2014'}
       </div>

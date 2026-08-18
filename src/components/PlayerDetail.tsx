@@ -177,6 +177,7 @@ export function PlayerDetail({
 }: Props) {
   const [rankInput, setRankInput] = useState('')
   const statMode = useStore((s) => s.statMode)
+  const select = useStore((s) => s.select)
   const setStatMode = useStore((s) => s.setStatMode)
 
   useEffect(() => setRankInput(rank ? String(rank) : ''), [rank, player?.id])
@@ -191,6 +192,9 @@ export function PlayerDetail({
   const adjusted = statMode === 'adj'
   const line = adjusted ? (adj ?? last) : last
   const bench = DATA.usage?.byMode?.[statMode]?.[player.pos]
+
+  // A positive split means Sleeper leagues take him earlier than FFC's mocks do.
+  const marketSplit = player.adpFfc == null ? null : player.adpFfc - player.adp
 
   // How the projection reads against what he actually did — the number a drafter is really weighing.
   const ppgDelta = proj?.ppg != null && line?.ppg != null ? proj.ppg - line.ppg : null
@@ -210,6 +214,9 @@ export function PlayerDetail({
 
   return (
     <aside className="detail" style={{ ['--pos-color' as string]: POS_COLOR[player.pos] }}>
+      {/* Only reachable on a phone, where the card is a sheet over the list rather than a column beside it. */}
+      <button className="detail-close" onClick={() => select(null)} aria-label="Close player card">✕</button>
+
       <div className="detail-hero">
         {logo && <img className="detail-logo" src={logo} alt="" aria-hidden />}
         <Avatar player={player} size={104} full />
@@ -254,11 +261,25 @@ export function PlayerDetail({
           <Stat label="Consensus" value={`#${player.rank}`} />
           <Stat label="Half PPR" value={fmtAdp(player.adpHalf)} />
           <Stat label="Standard" value={fmtAdp(player.adpStd)} />
+          <Stat label="FFC ADP" value={fmtAdp(player.adpFfc)} />
           <Stat label="Range" value={player.high ? `${player.high}–${player.low}` : '—'} />
           <Stat label="Std dev" value={player.stdev != null ? player.stdev.toFixed(1) : '—'} />
         </div>
+        {/* The two markets usually agree; where they don't, the disagreement is the story. */}
+        {marketSplit != null && Math.abs(marketSplit) >= 8 && (
+          <div className={`trend ${marketSplit > 0 ? 'up' : 'down'}`}>
+            Markets disagree — Sleeper drafts him {Math.abs(Math.round(marketSplit))} picks{' '}
+            {marketSplit > 0 ? 'earlier' : 'later'} than FantasyFootballCalculator
+          </div>
+        )}
         <div className="statlines">
-          <Line label="Drafts" parts={[player.timesDrafted != null ? `${player.timesDrafted.toLocaleString()} sampled` : null]} />
+          <Line
+            label="Source"
+            parts={[
+              player.adpSource === 'sleeper' ? 'Sleeper redraft' : 'FFC only',
+              player.timesDrafted != null ? `${player.timesDrafted.toLocaleString()} FFC drafts` : null,
+            ]}
+          />
         </div>
       </Section>
 

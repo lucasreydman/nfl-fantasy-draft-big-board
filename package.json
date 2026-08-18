@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "fetch:players": "node scripts/fetch-players.mjs"
+    "fetch:players": "node scripts/fetch-players.mjs",
+    "icons": "node scripts/make-icons.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

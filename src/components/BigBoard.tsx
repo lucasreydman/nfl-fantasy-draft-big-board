@@ -34,6 +34,8 @@ export function BigBoard() {
   } = useStore()
 
   const [sensitivity, setSensitivity] = useState(4)
+  // On a phone the toolbar's nine controls fill the screen, so the secondary ones fold away.
+  const [toolsOpen, setToolsOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const sensors = useSensors(
@@ -191,6 +193,16 @@ export function BigBoard() {
 
           <PosTabs value={posFilter} onChange={setPosFilter} onlyAll={boardMode === 'positional'} />
 
+          <button
+            className={`btn ghost sm tools-toggle ${toolsOpen ? 'on' : ''}`}
+            onClick={() => setToolsOpen((v) => !v)}
+            aria-expanded={toolsOpen}
+          >
+            {toolsOpen ? 'Done' : 'Tools'}
+          </button>
+        </div>
+
+        <div className={`toolbar toolbar-more ${toolsOpen ? 'open' : ''}`}>
           <label className="check">
             <input
               type="checkbox"
@@ -234,7 +246,7 @@ export function BigBoard() {
           )}
         </div>
 
-        <div className="toolbar toolbar-sub">
+        <div className={`toolbar toolbar-sub toolbar-more ${toolsOpen ? 'open' : ''}`}>
           <button className="btn" onClick={() => addTier(visible[0]?.id)}>+ Tier at top</button>
           <div className="auto-tier">
             <button className="btn" onClick={() => autoTier(sensitivity)}>Auto-tier</button>

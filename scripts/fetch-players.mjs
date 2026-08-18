@@ -102,6 +102,27 @@ for (const rows of Object.values(projByPos)) {
   for (const r of rows) if (r.stats && !projById.has(r.player_id)) projById.set(r.player_id, r.stats)
 }
 
+/**
+ * Sleeper publishes its own ADP inside the projection rows, drawn from real Sleeper redraft
+ * leagues. FantasyFootballCalculator's endpoint takes a `teams` parameter, echoes it back in
+ * `meta`, and then ignores it — 8, 10, 12 and 14-team requests return byte-identical numbers —
+ * so it cannot be a league-size-specific source no matter what it is asked for. Sleeper's is
+ * used for the board order because it is where these drafts actually happen; FFC is kept
+ * alongside it for its draft range, which Sleeper doesn't publish.
+ */
+const sleeperAdp = new Map()
+for (const rows of Object.values(projByPos)) {
+  for (const r of rows) {
+    const st = r.stats
+    if (!st) continue
+    const live = (v) => (typeof v === 'number' && v > 0 && v < 400 ? v : null)
+    const ppr = live(st.adp_ppr)
+    if (ppr == null) continue
+    sleeperAdp.set(r.player_id, { ppr, half: live(st.adp_half_ppr), std: live(st.adp_std) })
+  }
+}
+console.log(`  sleeper ADP: ${sleeperAdp.size} players`)
+
 const ctx = await loadSeasonContext({ json, year: PRIOR, team, log: (m) => console.log(m) })
 const { ranks, benchmarks, poolSize } = buildBenchmarks(ctx)
 console.log(`  qualified pool: ${JSON.stringify(poolSize)}`)
@@ -170,6 +191,7 @@ for (const row of adp.ppr.players) {
   if (seen.has(id)) continue
   seen.add(id)
 
+  const sleeper = s?.player_id ? sleeperAdp.get(s.player_id) : null
   const half = adp.half.players.find((p) => key(p.name) === key(row.name))
   const std = adp.standard.players.find((p) => key(p.name) === key(row.name))
 
@@ -182,9 +204,11 @@ for (const row of adp.ppr.players) {
     pos,
     team: tm,
     bye: row.bye || null,
-    adp: row.adp,
-    adpHalf: half?.adp ?? null,
-    adpStd: std?.adp ?? null,
+    adp: sleeper?.ppr ?? row.adp,
+    adpSource: sleeper ? 'sleeper' : 'ffc',
+    adpHalf: sleeper?.half ?? half?.adp ?? null,
+    adpStd: sleeper?.std ?? std?.adp ?? null,
+    adpFfc: row.adp,
     stdev: row.stdev ?? null,
     high: row.high ?? null,
     low: row.low ?? null,
@@ -214,7 +238,7 @@ for (const p of all) byPos[p.pos] = (byPos[p.pos] ?? 0) + 1
 const payload = {
   season,
   generatedAt: new Date().toISOString(),
-  source: { adp: 'fantasyfootballcalculator.com (PPR, 10-team)', meta: adp.ppr.meta, players: 'sleeper.app', stats: `sleeper.app (${PRIOR} weekly logs, ${season} projections)` },
+  source: { adp: 'sleeper.app redraft ADP (PPR), with fantasyfootballcalculator.com for draft range', meta: adp.ppr.meta, players: 'sleeper.app', stats: `sleeper.app (${PRIOR} weekly logs, ${season} projections)` },
   usage: {
     season: PRIOR,
     qualifier: QUALIFIER,
