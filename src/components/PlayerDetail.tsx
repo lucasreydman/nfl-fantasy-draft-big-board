@@ -10,10 +10,14 @@ interface Props {
   posRank: number | null
   tierName: string | null
   tierColor: string | null
+  tierNum: number | null
   drafted: boolean
   draftedBy: string | null
   boardSize: number
   onMoveToRank: (rank: number) => void
+  onInsertTier: () => void
+  onDropTier: () => void
+  onDropToBottom: () => void
   onRemove: () => void
   onDraft?: () => void
   fallback: React.ReactNode
@@ -173,8 +177,8 @@ function droppedSummary(adj: AdjustedLine) {
 }
 
 export function PlayerDetail({
-  player, rank, posRank, tierName, tierColor, drafted, draftedBy, boardSize,
-  onMoveToRank, onRemove, onDraft, fallback,
+  player, rank, posRank, tierName, tierColor, tierNum, drafted, draftedBy, boardSize,
+  onMoveToRank, onInsertTier, onDropTier, onDropToBottom, onRemove, onDraft, fallback,
 }: Props) {
   const [rankInput, setRankInput] = useState('')
   const statMode = useStore((s) => s.statMode)
@@ -235,9 +239,22 @@ export function PlayerDetail({
 
       {tierName && (
         <div className="detail-tier" style={{ ['--tier-color' as string]: tierColor ?? '#888' }}>
-          <span className="tier-dot" /> {tierName}
+          {tierNum != null && <span className="tier-num">{tierNum}</span>}
+          {tierName}
         </div>
       )}
+
+      <div className="detail-tier-actions">
+        <button className="btn ghost sm" onClick={onInsertTier}>
+          Start a tier here
+        </button>
+        <button className="btn ghost sm" onClick={onDropTier}>
+          Drop a tier
+        </button>
+        <button className="btn ghost sm" onClick={onDropToBottom}>
+          Drop to bottom
+        </button>
+      </div>
 
       <div className="detail-rank">
         <label htmlFor="rank-input">Your rank</label>

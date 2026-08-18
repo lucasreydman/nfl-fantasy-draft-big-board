@@ -29,9 +29,9 @@ export function BigBoard() {
     items, boardMode, cardSize, posFilter, query, hideDrafted, selectedId, picks, teams, mySlot,
     rounds, showPickLines,
     setBoardMode, setCardSize, setPosFilter, setQuery, setHideDrafted, setMySlot, setShowPickLines,
-    select, reorder, movePlayerBy,
-    movePlayerToRank, removePlayer, addTier, updateTier, removeTier, autoTier, clearTiers,
-    resetBoard, importBoard, draftPlayer,
+    select, reorder, movePlayerBy, movePlayerToNextTier, movePlayerToBottom,
+    movePlayerToRank, removePlayer, addTier, insertTierAbove, updateTier, removeTier, autoTier,
+    clearTiers, resetBoard, importBoard, draftPlayer,
   } = useStore()
 
   const [sensitivity, setSensitivity] = useState(4)
@@ -48,10 +48,11 @@ export function BigBoard() {
   const rankById = useMemo(() => new Map(ranked.map((r) => [r.player.id, r.rank])), [ranked])
   const tierOf = useMemo(() => new Map(ranked.map((r) => [r.player.id, r.tierId])), [ranked])
 
-  const { tierColors, tierNames, tierCounts } = useMemo(() => {
+  const { tierColors, tierNames, tierCounts, tierNums } = useMemo(() => {
     const colors = new Map<string, string>()
     const names = new Map<string, string>()
     const counts = new Map<string, number>()
+    const nums = new Map<string, number>()
     let current: string | null = null
     for (const item of items) {
       if (item.kind === 'tier') {
@@ -59,11 +60,12 @@ export function BigBoard() {
         colors.set(item.id, item.color)
         names.set(item.id, item.name)
         counts.set(item.id, 0)
+        nums.set(item.id, nums.size + 1)
       } else if (current) {
         counts.set(current, (counts.get(current) ?? 0) + 1)
       }
     }
-    return { tierColors: colors, tierNames: names, tierCounts: counts }
+    return { tierColors: colors, tierNames: names, tierCounts: counts, tierNums: nums }
   }, [items])
 
   const { draftedIds, draftedBy } = useMemo(() => {
@@ -322,6 +324,7 @@ export function BigBoard() {
                       id={item.id}
                       name={item.name}
                       color={item.color}
+                      num={tierNums.get(item.id) ?? 1}
                       count={tierCounts.get(item.id) ?? 0}
                       colors={TIER_COLORS}
                       onRename={(name) => updateTier(item.id, { name })}
@@ -340,12 +343,16 @@ export function BigBoard() {
                           rank={rankById.get(p.id) ?? 0}
                           posRank={posRank.get(p.id) ?? 0}
                           tierColor={tierId ? tierColors.get(tierId) ?? null : null}
+                          tierNum={tierId ? tierNums.get(tierId) ?? null : null}
                           drafted={draftedIds.has(p.id)}
                           draftedBy={draftedBy.get(p.id) ?? null}
                           selected={selectedId === p.id}
                           onSelect={() => select(p.id)}
                           onBump={(d) => movePlayerBy(p.id, d)}
                           onRemove={() => removePlayer(p.id)}
+                          onInsertTier={() => insertTierAbove(p.id)}
+                          onDropTier={() => movePlayerToNextTier(p.id)}
+                          onDropToBottom={() => movePlayerToBottom(p.id)}
                           onDraft={picks.length ? () => draftPlayer(p.id) : undefined}
                           avatarSize={cardSize === 'sm' ? 32 : cardSize === 'lg' ? 60 : 44}
                         />
@@ -371,10 +378,14 @@ export function BigBoard() {
         posRank={selected ? posRank.get(selected.id) ?? null : null}
         tierName={selectedTier ? tierNames.get(selectedTier) ?? null : null}
         tierColor={selectedTier ? tierColors.get(selectedTier) ?? null : null}
+        tierNum={selectedTier ? tierNums.get(selectedTier) ?? null : null}
         drafted={selected ? draftedIds.has(selected.id) : false}
         draftedBy={selected ? draftedBy.get(selected.id) ?? null : null}
         boardSize={ranked.length}
         onMoveToRank={(r) => selected && movePlayerToRank(selected.id, r)}
+        onInsertTier={() => selected && insertTierAbove(selected.id)}
+        onDropTier={() => selected && movePlayerToNextTier(selected.id)}
+        onDropToBottom={() => selected && movePlayerToBottom(selected.id)}
         onDraft={selected && picks.length ? () => draftPlayer(selected.id) : undefined}
         onRemove={() => selected && removePlayer(selected.id)}
         fallback={

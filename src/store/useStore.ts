@@ -15,6 +15,20 @@ const defaultItems = (): BoardItem[] =>
 let tierSeq = 0
 const newTierId = () => `tier-${Date.now().toString(36)}-${tierSeq++}`
 
+/**
+ * Keeps the default-named tiers numbered in board order, so inserting one in the
+ * middle doesn't leave "Tier 7" sitting above "Tier 3". A tier you renamed keeps
+ * its name — only the untouched `Tier <n>` labels are rewritten.
+ */
+const renumberTiers = (items: BoardItem[]): BoardItem[] => {
+  let n = 0
+  return items.map((item) => {
+    if (item.kind !== 'tier') return item
+    n++
+    return /^Tier \d+$/.test(item.name) ? { ...item, name: `Tier ${n}` } : item
+  })
+}
+
 export type View = 'board' | 'stats' | 'draft'
 export type BoardMode = 'overall' | 'positional'
 export type CardSize = 'sm' | 'md' | 'lg'
@@ -57,10 +71,15 @@ interface State {
   reorder: (activeId: string, overId: string) => void
   movePlayerBy: (playerId: string, delta: number) => void
   movePlayerToRank: (playerId: string, rank: number) => void
+  /** Drops a player past the next tier divider, so he lands at the top of the tier below. */
+  movePlayerToNextTier: (playerId: string) => void
+  movePlayerToBottom: (playerId: string) => void
   removePlayer: (playerId: string) => void
   addPlayer: (playerId: string) => void
   addAllPlayers: () => void
   addTier: (afterId?: string) => void
+  /** Cuts a new tier immediately above one player — the tiering-as-you-read workflow. */
+  insertTierAbove: (playerId: string) => void
   updateTier: (id: string, patch: { name?: string; color?: string }) => void
   removeTier: (id: string) => void
   autoTier: (sensitivity: number) => void
@@ -122,7 +141,8 @@ export const useStore = create<State>()(
           if (from === -1 || to === -1) return s
           const [moved] = items.splice(from, 1)
           items.splice(to, 0, moved)
-          return { items }
+          // Dragging a divider past another one reorders the tiers themselves.
+          return { items: moved.kind === 'tier' ? renumberTiers(items) : items }
         }),
 
       movePlayerBy: (playerId, delta) =>
@@ -153,6 +173,29 @@ export const useStore = create<State>()(
             if (items[i].kind === 'player') seen++
           }
           items.splice(to, 0, moved)
+          return { items }
+        }),
+
+      movePlayerToNextTier: (playerId) =>
+        set((s) => {
+          const from = s.items.findIndex((i) => i.kind === 'player' && i.id === playerId)
+          if (from === -1) return s
+          const divider = s.items.findIndex((i, idx) => idx > from && i.kind === 'tier')
+          const items = [...s.items]
+          const [moved] = items.splice(from, 1)
+          // Pulling the player out shifts the divider back one, so its old index is
+          // now the slot directly after it — exactly the top of the next tier.
+          items.splice(divider === -1 ? items.length : divider, 0, moved)
+          return { items }
+        }),
+
+      movePlayerToBottom: (playerId) =>
+        set((s) => {
+          const from = s.items.findIndex((i) => i.kind === 'player' && i.id === playerId)
+          if (from === -1 || from === s.items.length - 1) return s
+          const items = [...s.items]
+          const [moved] = items.splice(from, 1)
+          items.push(moved)
           return { items }
         }),
 
@@ -200,7 +243,24 @@ export const useStore = create<State>()(
             color: TIER_COLORS[tierCount % TIER_COLORS.length],
           }
           items.splice(at === -1 ? 0 : at, 0, tier)
-          return { items }
+          return { items: renumberTiers(items) }
+        }),
+
+      insertTierAbove: (playerId) =>
+        set((s) => {
+          const at = s.items.findIndex((i) => i.kind === 'player' && i.id === playerId)
+          if (at === -1) return s
+          // A divider already sits there — cutting again would just make an empty tier.
+          if (s.items[at - 1]?.kind === 'tier') return s
+          const above = s.items.slice(0, at).filter((i) => i.kind === 'tier').length
+          const items = [...s.items]
+          items.splice(at, 0, {
+            kind: 'tier',
+            id: newTierId(),
+            name: `Tier ${above + 1}`,
+            color: TIER_COLORS[above % TIER_COLORS.length],
+          })
+          return { items: renumberTiers(items) }
         }),
 
       updateTier: (id, patch) =>
@@ -208,7 +268,8 @@ export const useStore = create<State>()(
           items: s.items.map((i) => (i.id === id && i.kind === 'tier' ? { ...i, ...patch } : i)),
         })),
 
-      removeTier: (id) => set((s) => ({ items: s.items.filter((i) => i.id !== id) })),
+      removeTier: (id) =>
+        set((s) => ({ items: renumberTiers(s.items.filter((i) => i.id !== id)) })),
 
       clearTiers: () => set((s) => ({ items: s.items.filter((i) => i.kind === 'player') })),
 

@@ -74,7 +74,7 @@ const spreadTone = (v: number | null, floor: number) =>
 export function StatsBoard() {
   const { items, query, posFilter, selectedId, picks, teams, mySlot, hideDrafted,
     setQuery, setPosFilter, setHideDrafted, select, movePlayerToRank, removePlayer,
-    draftPlayer } = useStore()
+    insertTierAbove, movePlayerToNextTier, movePlayerToBottom, draftPlayer } = useStore()
 
   const [sortKey, setSortKey] = useState<Key>('adjPpg')
   const [desc, setDesc] = useState(true)
@@ -82,6 +82,15 @@ export function StatsBoard() {
 
   const { ranked, posRank } = useMemo(() => selectBoard(items), [items])
   const rankById = useMemo(() => new Map(ranked.map((r) => [r.player.id, r.rank])), [ranked])
+
+  // The table has no tier column, but the card it opens still says which tier a player is in.
+  const tiers = useMemo(() => {
+    const meta = new Map<string, { name: string; color: string; num: number }>()
+    for (const item of items) {
+      if (item.kind === 'tier') meta.set(item.id, { name: item.name, color: item.color, num: meta.size + 1 })
+    }
+    return new Map(ranked.map((r) => [r.player.id, r.tierId ? meta.get(r.tierId) ?? null : null]))
+  }, [items, ranked])
 
   const { draftedIds, draftedBy } = useMemo(() => {
     const ids = new Set(picks.map((p) => p.playerId))
@@ -298,13 +307,17 @@ export function StatsBoard() {
         player={selected}
         rank={selected ? rankById.get(selected.id) ?? null : null}
         posRank={selected ? posRank.get(selected.id) ?? null : null}
-        tierName={null}
-        tierColor={null}
+        tierName={selected ? tiers.get(selected.id)?.name ?? null : null}
+        tierColor={selected ? tiers.get(selected.id)?.color ?? null : null}
+        tierNum={selected ? tiers.get(selected.id)?.num ?? null : null}
         drafted={selected ? draftedIds.has(selected.id) : false}
         draftedBy={selected ? draftedBy.get(selected.id) ?? null : null}
         boardSize={ranked.length}
         onRemove={() => selected && removePlayer(selected.id)}
         onMoveToRank={(r) => selected && movePlayerToRank(selected.id, r)}
+        onInsertTier={() => selected && insertTierAbove(selected.id)}
+        onDropTier={() => selected && movePlayerToNextTier(selected.id)}
+        onDropToBottom={() => selected && movePlayerToBottom(selected.id)}
         onDraft={selected && picks.length ? () => draftPlayer(selected.id) : undefined}
         fallback={
           <>

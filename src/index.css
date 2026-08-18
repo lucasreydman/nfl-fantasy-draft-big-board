@@ -246,7 +246,7 @@ select {
   display: flex;
   flex-direction: column;
   /* One shared track template keeps the header and every row in alignment. */
-  --row-cols: 18px var(--w-rank, 44px) auto minmax(150px, 1fr) 62px 56px 52px 64px 62px 58px 124px;
+  --row-cols: 18px var(--w-rank, 44px) auto minmax(150px, 1fr) 62px 56px 52px 64px 62px 58px 236px;
   --row-gap: 14px;
 }
 
@@ -336,6 +336,13 @@ select {
 .row-rank {
   font-size: var(--fs-rank, 17px); font-weight: 800; color: var(--muted);
   text-align: right; font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+  display: flex; flex-direction: column; align-items: flex-end; line-height: 1.05;
+}
+/* Which tier he's in, tucked under his rank so it never fights the name.
+   Only rendered for tiered players, so --tier-color is always a real colour here. */
+.row-tier-num {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em;
+  color: var(--tier-color); margin-top: 2px;
 }
 .row-main { min-width: 0; }
 .row-name {
@@ -366,6 +373,11 @@ select {
 .row-actions .draft-btn:disabled { opacity: 0.35; }
 .row-actions .row-remove { font-size: 10px; }
 .row-actions .row-remove:hover { color: var(--danger); border-color: #3a2732; background: #2a1a20; }
+/* The tiering trio sits slightly apart from the nudge arrows it isn't related to. */
+.row-actions .row-icon { color: var(--muted); }
+.row-actions .row-icon-lead { margin-left: 5px; }
+.row-actions .row-icon:hover { color: var(--accent); border-color: #1e4d36; }
+.row-actions .row-icon svg { display: block; }
 
 /* ---------- adding players back ---------- */
 
@@ -416,12 +428,16 @@ select {
 
 /* Narrower viewports: shed the least important columns rather than squeeze. */
 @media (max-width: 1500px) {
-  .list-wrap { --row-cols: 18px var(--w-rank, 44px) auto minmax(140px, 1fr) 60px 54px 50px 62px 58px 122px; }
+  .list-wrap { --row-cols: 18px var(--w-rank, 44px) auto minmax(140px, 1fr) 60px 54px 50px 62px 58px 222px; }
   .list-head span:nth-child(9), .row > *:nth-child(9) { display: none; }
 }
 @media (max-width: 1280px) {
-  .list-wrap { --row-cols: 18px var(--w-rank, 40px) auto minmax(120px, 1fr) 56px 50px 46px 58px 116px; --row-gap: 10px; }
+  .list-wrap { --row-cols: 18px var(--w-rank, 40px) auto minmax(120px, 1fr) 56px 50px 46px 58px 206px; --row-gap: 10px; }
   .list-head span:nth-child(7), .row > *:nth-child(7) { display: none; }
+  /* Seven action buttons no longer fit the cell here. Drop-to-bottom is the one
+     that has a plain alternative (drag, or set the rank), so it's the one to go —
+     the player card still carries it. */
+  .row-actions .row-icon-bottom { display: none; }
 }
 
 /* pick lines: static markers for where your picks land */
@@ -467,7 +483,7 @@ select {
 
 .tier {
   display: grid;
-  grid-template-columns: 18px 10px minmax(80px, 240px) auto 1fr auto;
+  grid-template-columns: 18px 22px minmax(80px, 240px) auto 1fr auto;
   align-items: center;
   gap: 10px;
   margin: 14px auto 4px;
@@ -477,6 +493,14 @@ select {
   border: 1px solid color-mix(in srgb, var(--tier-color) 30%, transparent);
 }
 .tier-dot { width: 11px; height: 11px; border-radius: 50%; background: var(--tier-color); }
+/* The tier's position on the board, which stays right no matter what you rename it. */
+.tier-num {
+  display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+  font-size: 11.5px; font-weight: 800; font-variant-numeric: tabular-nums;
+  color: var(--tier-color); flex: none;
+  background: color-mix(in srgb, var(--tier-color) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tier-color) 55%, transparent);
+}
 .tier-name {
   background: transparent; border: 1px solid transparent; border-radius: 6px;
   padding: 3px 6px; font-weight: 700; font-size: 14.5px; outline: none; width: 100%;
@@ -565,6 +589,10 @@ select {
   background: color-mix(in srgb, var(--tier-color) 14%, var(--panel-2));
   border: 1px solid color-mix(in srgb, var(--tier-color) 30%, transparent);
 }
+
+/* The row-hover controls are hidden on a phone, so the card carries them too. */
+.detail-tier-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.detail-tier-actions .btn { flex: 1 1 auto; white-space: nowrap; }
 
 .detail-rank { margin-top: 16px; }
 .detail-rank label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--dim); }

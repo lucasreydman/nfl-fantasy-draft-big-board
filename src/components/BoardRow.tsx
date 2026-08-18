@@ -13,6 +13,31 @@ const GripIcon = () => (
   </svg>
 )
 
+/** A plus straddling a dashed rule: cut a new tier at this player. */
+const TierAboveIcon = () => (
+  <svg viewBox="0 0 16 12" width="13" height="11" aria-hidden fill="none" stroke="currentColor">
+    <path d="M6.2 2.2h3.6M8 0.4v3.6" strokeWidth="1.5" />
+    <path d="M1.5 6h13" strokeWidth="1.5" strokeDasharray="3 2" />
+    <rect x="3" y="8.5" width="10" height="3" rx="1" fill="currentColor" stroke="none" opacity=".45" />
+  </svg>
+)
+
+/** Arrow onto a dashed rule: drop past the next divider. */
+const NextTierIcon = () => (
+  <svg viewBox="0 0 14 14" width="12" height="12" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.6">
+    <path d="M7 1.2v6.4M4.3 5.4 7 8.1l2.7-2.7" />
+    <path d="M1.5 11.6h11" strokeDasharray="3 2" />
+  </svg>
+)
+
+/** Arrow onto a solid rule: all the way to the foot of the board. */
+const ToBottomIcon = () => (
+  <svg viewBox="0 0 14 14" width="12" height="12" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.6">
+    <path d="M7 1.2v6.4M4.3 5.4 7 8.1l2.7-2.7" />
+    <path d="M2 11.6h10" strokeLinecap="round" />
+  </svg>
+)
+
 /** Column headers, sharing the row track template so everything stays aligned. */
 export function BoardHeader() {
   return (
@@ -37,19 +62,24 @@ interface RowProps {
   rank: number
   posRank: number
   tierColor: string | null
+  /** Which tier he currently sits in, counted down the board. Null when untiered. */
+  tierNum: number | null
   drafted: boolean
   draftedBy: string | null
   selected: boolean
   onSelect: () => void
   onBump: (delta: number) => void
   onRemove: () => void
+  onInsertTier: () => void
+  onDropTier: () => void
+  onDropToBottom: () => void
   onDraft?: () => void
   avatarSize?: number
 }
 
 export const PlayerRow = memo(function PlayerRow({
-  player, rank, posRank, tierColor, drafted, draftedBy, selected, onSelect, onBump, onRemove,
-  onDraft, avatarSize = 44,
+  player, rank, posRank, tierColor, tierNum, drafted, draftedBy, selected, onSelect, onBump,
+  onRemove, onInsertTier, onDropTier, onDropToBottom, onDraft, avatarSize = 44,
 }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: player.id,
@@ -79,7 +109,10 @@ export const PlayerRow = memo(function PlayerRow({
         <GripIcon />
       </button>
 
-      <div className="row-rank">{rank}</div>
+      <div className="row-rank">
+        {rank}
+        {tierNum != null && <span className="row-tier-num">T{tierNum}</span>}
+      </div>
       <Avatar player={player} size={avatarSize} />
 
       <div className="row-main">
@@ -102,6 +135,30 @@ export const PlayerRow = memo(function PlayerRow({
       <div className="row-actions">
         <button onClick={(e) => { e.stopPropagation(); onBump(-1) }} title="Move up">▲</button>
         <button onClick={(e) => { e.stopPropagation(); onBump(1) }} title="Move down">▼</button>
+        <button
+          className="row-icon row-icon-lead"
+          onClick={(e) => { e.stopPropagation(); onInsertTier() }}
+          title={`Start a new tier at ${player.name}`}
+          aria-label={`Insert a tier above ${player.name}`}
+        >
+          <TierAboveIcon />
+        </button>
+        <button
+          className="row-icon"
+          onClick={(e) => { e.stopPropagation(); onDropTier() }}
+          title="Drop to the next tier down"
+          aria-label={`Drop ${player.name} to the next tier`}
+        >
+          <NextTierIcon />
+        </button>
+        <button
+          className="row-icon row-icon-bottom"
+          onClick={(e) => { e.stopPropagation(); onDropToBottom() }}
+          title="Drop to the bottom of the board"
+          aria-label={`Drop ${player.name} to the bottom of the board`}
+        >
+          <ToBottomIcon />
+        </button>
         <button
           className="row-remove"
           onClick={(e) => { e.stopPropagation(); onRemove() }}
@@ -128,6 +185,8 @@ interface TierProps {
   id: string
   name: string
   color: string
+  /** Its position among the tiers, top to bottom — always correct even if renamed. */
+  num: number
   count: number
   colors: string[]
   onRename: (name: string) => void
@@ -135,7 +194,7 @@ interface TierProps {
   onRemove: () => void
 }
 
-export function TierRow({ id, name, color, count, colors, onRename, onRecolor, onRemove }: TierProps) {
+export function TierRow({ id, name, color, num, count, colors, onRename, onRecolor, onRemove }: TierProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
 
   return (
@@ -151,7 +210,7 @@ export function TierRow({ id, name, color, count, colors, onRename, onRecolor, o
       <button className="grip" {...attributes} {...listeners} aria-label={`Reorder ${name}`}>
         <GripIcon />
       </button>
-      <span className="tier-dot" />
+      <span className="tier-num" aria-label={`Tier ${num}`}>{num}</span>
       <input
         className="tier-name"
         value={name}
