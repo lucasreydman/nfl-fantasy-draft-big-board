@@ -8,15 +8,16 @@ import {
   useSensors,
   type DragEndEvent,
 } from '@dnd-kit/core'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import {
   SortableContext,
-  rectSortingStrategy,
   sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import type { BoardItem, Pos } from '../types'
 import { POSITIONS, POS_COLOR, TIER_COLORS } from '../lib/format'
 import { PLAYER_BY_ID, selectBoard, useStore } from '../store/useStore'
-import { PlayerRow, TierRow } from './BoardRow'
+import { BoardHeader, PlayerRow, TierRow } from './BoardRow'
 import { PositionalBoard } from './PositionalBoard'
 import { PlayerDetail } from './PlayerDetail'
 
@@ -181,7 +182,7 @@ export function BigBoard() {
           </label>
 
           {boardMode === 'overall' && (
-            <div className="segmented size-picker" title="Card size">
+            <div className="segmented size-picker" title="Row density">
               {(['sm', 'md', 'lg'] as const).map((s) => (
                 <button key={s} className={cardSize === s ? 'on' : ''} onClick={() => setCardSize(s)}>
                   {s === 'sm' ? 'S' : s === 'md' ? 'M' : 'L'}
@@ -241,9 +242,16 @@ export function BigBoard() {
             onReorder={reorder}
           />
         ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-            <SortableContext items={visible.map((i) => i.id)} strategy={rectSortingStrategy}>
-              <div className={`list size-${cardSize}`}>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={onDragEnd}
+            modifiers={[restrictToVerticalAxis]}
+          >
+            <div className={`list-wrap size-${cardSize}`}>
+              <BoardHeader />
+              <SortableContext items={visible.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+                <div className="list">
                 {visible.map((item) =>
                   item.kind === 'tier' ? (
                     <TierRow
@@ -275,15 +283,16 @@ export function BigBoard() {
                           onSelect={() => select(p.id)}
                           onBump={(d) => movePlayerBy(p.id, d)}
                           onDraft={picks.length ? () => draftPlayer(p.id) : undefined}
-                          avatarSize={cardSize === 'sm' ? 40 : cardSize === 'lg' ? 68 : 52}
+                          avatarSize={cardSize === 'sm' ? 32 : cardSize === 'lg' ? 60 : 44}
                         />
                       )
                     })()
                   ),
                 )}
-                {!visible.length && <p className="empty">No players match that filter.</p>}
-              </div>
-            </SortableContext>
+                  {!visible.length && <p className="empty">No players match that filter.</p>}
+                </div>
+              </SortableContext>
+            </div>
           </DndContext>
         )}
       </div>

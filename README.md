@@ -10,7 +10,7 @@ Skill positions only — **no kickers, no team defenses**, anywhere in the app.
 
 **Big Board** — drag players into your own order, drop in tiers, rename and recolor them.
 
-- **Overall** mode: a responsive card grid that fills wide screens with multiple columns instead of one thin strip, with tier dividers spanning the full width. Card size toggles S/M/L.
+- **Overall** mode: one ranked list read top to bottom, laid out as an aligned table — rank, headshot, name, position rank, team, bye, ADP, consensus rank, and your deviation each get their own column, with a sticky header. Tier dividers sit inline. S/M/L controls row density.
 - **Positional** mode: a sortable column per position (QB/RB/WR/TE). Positional ranks (`RB1`, `WR12`) fall out of your overall order automatically, and tier colors carry across as a stripe on each row.
 - **Auto-tier** cuts tiers where the ADP gap to the next player is unusually large *for that part of the board* — the threshold is a multiple of the local median gap, so it doesn't produce 14-player blocks at the top and one-man tiers at the bottom. The slider trades broad tiers for fine ones.
 - Every card shows how far you've moved a player off consensus (`+12` = twelve spots higher than the consensus rank), and the side panel ranks your biggest swings. The comparison is rank-vs-rank, not rank-vs-raw-ADP — ADP is a pick number and compresses past the end of the draft, which makes deep players look wildly mis-ranked when they aren't.

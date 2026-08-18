@@ -199,16 +199,14 @@ export function DraftView() {
                 style={{ ['--pos-color' as string]: POS_COLOR[player.pos] }}
               >
                 <span className="avail-rank">{rank}</span>
-                <Avatar player={player} size={30} />
+                <Avatar player={player} size={32} />
                 <div className="avail-main">
                   <div className="avail-name">{player.name}</div>
-                  <div className="row-sub">
-                    <span className="pos-chip">{player.pos}{posRank.get(player.id)}</span>
-                    <span>{player.team ?? 'FA'}</span>
-                    {player.bye && <span className="dim">BYE {player.bye}</span>}
-                  </div>
                 </div>
-                <span className="avail-adp">{player.estimated ? '—' : fmtAdp(player.adp)}</span>
+                <span><span className="pos-chip">{player.pos}{posRank.get(player.id)}</span></span>
+                <span className="avail-team">{player.team ?? 'FA'}</span>
+                <span className="avail-num dim">{player.bye ?? '—'}</span>
+                <span className="avail-num">{player.estimated ? '—' : fmtAdp(player.adp)}</span>
                 <button
                   className="btn primary sm"
                   disabled={done}

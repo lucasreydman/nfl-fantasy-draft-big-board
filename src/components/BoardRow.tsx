@@ -13,6 +13,25 @@ const GripIcon = () => (
   </svg>
 )
 
+/** Column headers, sharing the row track template so everything stays aligned. */
+export function BoardHeader() {
+  return (
+    <div className="list-head" aria-hidden>
+      <span />
+      <span className="ta-r">#</span>
+      <span />
+      <span>Player</span>
+      <span>Pos</span>
+      <span>Team</span>
+      <span className="ta-r">Bye</span>
+      <span className="ta-r">ADP</span>
+      <span className="ta-r">Cons</span>
+      <span className="ta-r">Vs</span>
+      <span />
+    </div>
+  )
+}
+
 interface RowProps {
   player: Player
   rank: number
@@ -29,7 +48,7 @@ interface RowProps {
 
 export const PlayerRow = memo(function PlayerRow({
   player, rank, posRank, tierColor, drafted, draftedBy, selected, onSelect, onBump, onDraft,
-  avatarSize = 52,
+  avatarSize = 44,
 }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: player.id,
@@ -67,21 +86,16 @@ export const PlayerRow = memo(function PlayerRow({
           {player.name}
           {player.injury && <span className="injury">{injuryTag(player.injury)}</span>}
         </div>
-        <div className="row-sub">
-          <span className="pos-chip">{player.pos}{posRank}</span>
-          <span>{player.team ?? 'FA'}</span>
-          {player.bye && <span className="dim">BYE {player.bye}</span>}
-          {draftedBy && <span className="taken">{draftedBy}</span>}
-        </div>
+        {draftedBy && <div className="row-taken">{draftedBy}</div>}
       </div>
 
-      <div className="row-adp">
-        <div className="row-adp-value">{player.estimated ? '—' : fmtAdp(player.adp)}</div>
-        <div className="row-adp-label">ADP</div>
-      </div>
-
-      <div className={`row-delta ${!delta ? '' : delta > 0 ? 'up' : 'down'}`}>
-        {delta ? `${delta > 0 ? '+' : ''}${delta}` : '—'}
+      <div><span className="pos-chip">{player.pos}{posRank}</span></div>
+      <div className="row-team">{player.team ?? 'FA'}</div>
+      <div className="row-num dim">{player.bye ?? '\u2014'}</div>
+      <div className="row-num">{player.estimated ? '\u2014' : fmtAdp(player.adp)}</div>
+      <div className="row-num dim">{player.estimated ? '\u2014' : `#${player.rank}`}</div>
+      <div className={`row-num row-delta ${!delta ? '' : delta > 0 ? 'up' : 'down'}`}>
+        {delta ? `${delta > 0 ? '+' : ''}${delta}` : '\u2014'}
       </div>
 
       <div className="row-actions">

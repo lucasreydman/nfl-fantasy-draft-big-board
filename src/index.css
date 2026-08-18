@@ -240,71 +240,89 @@ select {
 
 .board-main { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 
+.list-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /* One shared track template keeps the header and every row in alignment. */
+  --row-cols: 18px var(--w-rank, 44px) auto minmax(150px, 1fr) 62px 56px 52px 64px 62px 58px 96px;
+  --row-gap: 14px;
+}
+
+.list-head {
+  display: grid;
+  grid-template-columns: var(--row-cols);
+  gap: var(--row-gap);
+  align-items: center;
+  padding: 12px 16px 8px 8px;
+  margin: 0 auto;
+  width: 100%;
+  max-width: var(--board-max, 1140px);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+  border-bottom: 1px solid var(--line-soft);
+}
+.ta-r { text-align: right; }
+
 .list {
   overflow-y: auto;
   flex: 1;
-  padding: 10px 12px 60px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(var(--card-min, 420px), 1fr));
-  gap: 8px;
-  align-content: start;
+  padding: 8px 0 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.list > * {
+  width: 100%;
+  max-width: var(--board-max, 1140px);
+  margin: 0 auto;
 }
 
 .row {
   display: grid;
-  grid-template-columns: 16px 34px auto minmax(0, 1fr) auto auto auto;
+  grid-template-columns: var(--row-cols);
+  gap: var(--row-gap);
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px 12px 8px;
-  border-radius: 12px;
+  padding: 8px 16px 8px 8px;
+  border-radius: 10px;
   border: 1px solid var(--line-soft);
   position: relative;
   background: var(--panel);
   cursor: pointer;
-  min-height: 76px;
-  transition: background 0.12s, border-color 0.12s, transform 0.12s;
+  min-height: var(--row-h, 62px);
+  transition: background 0.12s, border-color 0.12s;
 }
-/* No overflow:hidden here — on a grid item it collapses the automatic minimum
-   size to zero and the card flattens. The pseudo-elements clip themselves. */
+/* No overflow:hidden here — as a flex/grid child it lets the automatic minimum
+   size collapse and flattens the row. The pseudo-elements clip themselves. */
 .row::before {
   content: '';
   position: absolute; left: 0; top: 0; bottom: 0;
   width: 4px;
-  border-radius: 12px 0 0 12px;
+  border-radius: 10px 0 0 10px;
   background: var(--tier-color);
 }
-/* Faint positional wash so a card reads as its position at a glance. */
+/* Faint positional wash so a row reads as its position at a glance. */
 .row::after {
   content: '';
   position: absolute; inset: 0;
   border-radius: inherit;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--pos-color) 9%, transparent), transparent 42%);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--pos-color) 10%, transparent), transparent 30%);
   pointer-events: none;
 }
 .row > * { position: relative; z-index: 1; }
+
 .row:hover { background: var(--panel-2); border-color: var(--line); }
-.row-selected { border-color: color-mix(in srgb, var(--pos-color) 60%, transparent); background: var(--panel-2); }
-.row-dragging { opacity: 0.9; z-index: 5; box-shadow: 0 14px 28px -12px #000c, 0 0 0 1px var(--line); }
-.row-drafted { opacity: 0.38; }
+.row-selected {
+  border-color: color-mix(in srgb, var(--pos-color) 65%, transparent);
+  background: var(--panel-2);
+}
+.row-dragging { opacity: 0.95; z-index: 5; box-shadow: 0 16px 32px -14px #000d, 0 0 0 1px var(--line); }
+.row-drafted { opacity: 0.4; }
 .row-drafted .row-name { text-decoration: line-through; text-decoration-color: #ffffff40; }
-
-.list.size-sm { --card-min: 330px; }
-.list.size-md { --card-min: 430px; }
-.list.size-lg { --card-min: 620px; }
-
-.size-sm .row { padding: 8px 12px 8px 8px; gap: 10px; min-height: 58px; }
-.size-sm .row-name { font-size: 14px; }
-.size-sm .row-rank { font-size: 14px; }
-.size-sm .row-sub { font-size: 11.5px; margin-top: 2px; }
-
-.size-lg .row { padding: 16px 18px 16px 10px; gap: 16px; min-height: 100px; }
-.size-lg .row-name { font-size: 19px; }
-.size-lg .row-rank { font-size: 21px; }
-.size-lg .row-sub { font-size: 13.5px; gap: 10px; }
-.size-lg .row-adp-value { font-size: 16px; }
-.size-lg .pos-chip { font-size: 12.5px; padding: 3px 8px; }
-
-.size-picker button { padding: 5px 11px; font-weight: 700; }
 
 .grip {
   border: 0; background: transparent; color: #3c4457;
@@ -316,51 +334,62 @@ select {
 .grip svg { fill: currentColor; }
 
 .row-rank {
-  font-size: 17px; font-weight: 800; color: var(--muted);
+  font-size: var(--fs-rank, 17px); font-weight: 800; color: var(--muted);
   text-align: right; font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
 }
 .row-main { min-width: 0; }
 .row-name {
-  font-weight: 650; font-size: 16px; letter-spacing: -0.01em;
+  font-weight: 650; font-size: var(--fs-name, 15.5px); letter-spacing: -0.01em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.row-sub { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--muted); margin-top: 4px; }
-
-.row-adp { text-align: right; min-width: 44px; }
-.row-adp-value { font-size: 14.5px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
-.row-adp-label { font-size: 9px; color: var(--dim); letter-spacing: 0.08em; margin-top: 1px; }
-
-.row-delta {
-  text-align: right; min-width: 38px;
-  font-size: 13.5px; font-weight: 700; color: var(--dim); font-variant-numeric: tabular-nums;
-}
+.row-taken { font-size: 11px; color: var(--dim); font-style: italic; margin-top: 2px; }
+.row-team { font-size: 13px; font-weight: 600; color: var(--muted); }
+.row-num { text-align: right; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.row-delta { font-weight: 700; color: var(--dim); }
 .row-delta.up { color: var(--accent); }
 .row-delta.down { color: #ff8b6b; }
 
-.row-actions { display: flex; align-items: center; gap: 4px; opacity: 0; transition: opacity 0.12s; }
+.row-sub { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+.row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 4px; opacity: 0; transition: opacity 0.12s; }
 .row:hover .row-actions, .row-selected .row-actions { opacity: 1; }
 .row-actions button {
   border: 1px solid var(--line); background: var(--panel-2); color: var(--muted);
-  width: 26px; height: 26px; border-radius: 7px; font-size: 9px; line-height: 1;
-  display: grid; place-items: center;
+  width: 24px; height: 24px; border-radius: 6px; font-size: 8px; line-height: 1;
+  display: grid; place-items: center; flex: none;
 }
 .row-actions button:hover { color: var(--text); background: var(--panel-3); }
 .row-actions .draft-btn {
-  width: auto; height: 26px; padding: 0 11px; font-size: 12px; font-weight: 700;
+  width: auto; height: 24px; padding: 0 9px; font-size: 11.5px; font-weight: 700;
   color: var(--accent); border-color: #1e4d36;
 }
 .row-actions .draft-btn:disabled { opacity: 0.35; }
 
+/* Density presets */
+.size-sm { --row-h: 46px; --fs-name: 14px; --fs-rank: 14px; --w-rank: 38px; --row-gap: 12px; --board-max: 1020px; }
+.size-md { --row-h: 62px; --fs-name: 15.5px; --fs-rank: 17px; --board-max: 1140px; }
+.size-lg { --row-h: 82px; --fs-name: 18px; --fs-rank: 21px; --w-rank: 52px; --row-gap: 18px; --board-max: 1320px; }
+.size-picker button { padding: 5px 11px; font-weight: 700; }
+
+/* Narrower viewports: shed the least important columns rather than squeeze. */
+@media (max-width: 1500px) {
+  .list-wrap { --row-cols: 18px var(--w-rank, 44px) auto minmax(140px, 1fr) 60px 54px 50px 62px 58px 94px; }
+  .list-head span:nth-child(9), .row > *:nth-child(9) { display: none; }
+}
+@media (max-width: 1280px) {
+  .list-wrap { --row-cols: 18px var(--w-rank, 40px) auto minmax(120px, 1fr) 56px 50px 46px 58px 88px; --row-gap: 10px; }
+  .list-head span:nth-child(7), .row > *:nth-child(7) { display: none; }
+}
+
 /* tiers */
 
 .tier {
-  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: 18px 10px minmax(80px, 240px) auto 1fr auto;
   align-items: center;
   gap: 10px;
-  margin: 12px 0 2px;
-  padding: 8px 12px 8px 6px;
+  margin: 14px auto 4px;
+  padding: 9px 12px 9px 6px;
   border-radius: 8px;
   background: linear-gradient(90deg, color-mix(in srgb, var(--tier-color) 18%, var(--panel)) 0%, var(--panel) 65%);
   border: 1px solid color-mix(in srgb, var(--tier-color) 30%, transparent);
@@ -600,14 +629,11 @@ select {
 .panel-head h3 { font-size: 13px; }
 .panel-head .search { min-width: 140px; flex: 0 1 200px; padding: 5px 9px; font-size: 12.5px; }
 
-.avail-list {
-  overflow-y: auto; flex: 1; padding: 6px 8px 20px;
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
-  gap: 2px 10px; align-content: start;
-}
+.avail-list { overflow-y: auto; flex: 1; padding: 6px 12px 20px; }
 .avail-row {
   display: grid;
-  grid-template-columns: 26px auto minmax(0, 1fr) 44px auto;
+  min-height: 46px;
+  grid-template-columns: 34px auto minmax(140px, 1fr) 56px 52px 44px 58px auto;
   align-items: center; gap: 10px;
   padding: 5px 8px; border-radius: 8px; margin-bottom: 2px;
   position: relative;
@@ -619,7 +645,9 @@ select {
 .avail-row:hover { background: var(--panel-2); }
 .avail-rank { font-size: 12px; font-weight: 700; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
 .avail-main { min-width: 0; }
-.avail-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.avail-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.avail-team { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.avail-num { text-align: right; font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .avail-adp { font-size: 12px; color: var(--dim); text-align: right; font-variant-numeric: tabular-nums; }
 
 .lineup { overflow-y: auto; flex: 1; padding: 8px 10px 20px; }
