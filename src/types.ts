@@ -16,6 +16,17 @@ export interface StatLine {
   ptsStd?: number
   ppg?: number
   snapPct?: number
+  /** Rank and percentile for each share, among qualified players at the same position. */
+  snapRank?: number
+  snapPctile?: number
+  rushRank?: number
+  rushPctile?: number
+  tgtRank?: number
+  tgtPctile?: number
+  /** Red-zone carries plus red-zone targets. */
+  rzOpp?: number
+  rzRank?: number
+  rzPctile?: number
   scrimYd?: number
   tds?: number
   fd?: number
@@ -79,10 +90,27 @@ export interface Player {
   rank: number
 }
 
+/** Position-wide reference points for a usage metric: median, top decile, and the leader. */
+export interface Benchmark {
+  med: number
+  hi: number
+  max: number
+}
+
+export interface PosBenchmarks {
+  /** How many players cleared the qualifier and sit in the comparison pool. */
+  n: number
+  snapPct: Benchmark
+  rushShare: Benchmark
+  tgtShare: Benchmark
+  rzOpp: Benchmark
+}
+
 export interface PlayerData {
   season: number
   generatedAt: string
   source: { adp: string; meta: Record<string, unknown>; players: string; stats: string }
+  usage: { season: number; qualifier: string; byPos: Record<Pos, PosBenchmarks> }
   players: Player[]
 }
 

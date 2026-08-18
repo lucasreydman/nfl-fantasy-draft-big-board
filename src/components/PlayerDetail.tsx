@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import type { Player, Pos, StatLine } from '../types'
-import { POS_COLOR, fmtAdp, teamLogo } from '../lib/format'
+import type { Benchmark, Player, Pos, StatLine } from '../types'
+import { POS_COLOR, fmtAdp, ordinal, teamLogo } from '../lib/format'
+import { DATA } from '../store/useStore'
 import { Avatar } from './Avatar'
 
 interface Props {
@@ -53,15 +54,47 @@ function Line({ label, parts }: { label: string; parts: (string | null)[] }) {
   )
 }
 
-function Bar({ label, pct }: { label: string; pct?: number }) {
+/** Green at the top of the position, orange at the bottom — the point is the reader's eye. */
+const tone = (pctile?: number) =>
+  pctile == null ? '' : pctile >= 90 ? 'elite' : pctile >= 70 ? 'strong' : pctile >= 40 ? 'mid' : 'low'
+
+interface BarProps {
+  label: string
+  pct?: number
+  rank?: number
+  pctile?: number
+  bench?: Benchmark
+  poolSize?: number
+  /** Shares read as percentages; red-zone work reads as a raw count. */
+  unit?: '%' | 'count'
+}
+
+/**
+ * A share on its own is unreadable — 54% of the snaps is a workhorse at running back and a
+ * part-timer at receiver. The bar spans zero to whatever the position's leader did and is
+ * marked at the median, so the fill itself says where the player sits.
+ *
+ * Categories the position barely touches are dropped rather than drawn: a receiver with ten
+ * carries would otherwise post a full bar and read like a featured back.
+ */
+function Bar({ label, pct, rank, pctile, bench, poolSize, unit = '%' }: BarProps) {
   if (pct == null) return null
+  if (bench && bench.hi < 2 && pct < 3) return null
+  const ceiling = Math.max(bench?.max ?? pct, pct, 1)
+  const median = bench && bench.med > 0 ? Math.min(100, (bench.med / ceiling) * 100) : null
   return (
     <div className="usage-row">
-      <span className="usage-label">{label}</span>
-      <span className="usage-bar">
-        <span style={{ width: `${Math.min(100, pct)}%` }} />
-      </span>
-      <span className="usage-val">{pct.toFixed(1)}%</span>
+      <div className="usage-head">
+        <span className="usage-label">{label}</span>
+        {rank != null && poolSize != null && (
+          <span className={`pctile-chip ${tone(pctile)}`}>{ordinal(rank)} of {poolSize}</span>
+        )}
+        <span className="usage-val">{unit === '%' ? `${pct.toFixed(1)}%` : pct}</span>
+      </div>
+      <div className="usage-bar">
+        <span className={`usage-fill ${tone(pctile)}`} style={{ width: `${Math.min(100, (pct / ceiling) * 100)}%` }} />
+        {median != null && <span className="usage-tick" style={{ left: `${median}%` }} />}
+      </div>
     </div>
   )
 }
@@ -137,6 +170,9 @@ export function PlayerDetail({
   const { last, proj } = player
 
   // How the projection reads against what he actually did — the number a drafter is really weighing.
+  // Shares only mean something against the position, so the card carries the pool with it.
+  const bench = DATA.usage?.byPos?.[player.pos]
+
   const ppgDelta = proj?.ppg != null && last?.ppg != null ? proj.ppg - last.ppg : null
 
   const submitRank = () => {
@@ -253,9 +289,14 @@ export function PlayerDetail({
 
           <Section title={`${last.season} usage`}>
             <div className="usage">
-              <Bar label="Snaps" pct={last.snapPct} />
-              <Bar label="Carries" pct={last.rushShare} />
-              <Bar label="Targets" pct={last.tgtShare} />
+              <Bar label="Snaps" pct={last.snapPct} rank={last.snapRank} pctile={last.snapPctile}
+                bench={bench?.snapPct} poolSize={bench?.n} />
+              <Bar label="Carries" pct={last.rushShare} rank={last.rushRank} pctile={last.rushPctile}
+                bench={bench?.rushShare} poolSize={bench?.n} />
+              <Bar label="Targets" pct={last.tgtShare} rank={last.tgtRank} pctile={last.tgtPctile}
+                bench={bench?.tgtShare} poolSize={bench?.n} />
+              <Bar label="Red zone" pct={last.rzOpp} rank={last.rzRank} pctile={last.rzPctile}
+                bench={bench?.rzOpp} poolSize={bench?.n} unit="count" />
             </div>
             <div className="statlines">
               <Line
@@ -275,6 +316,12 @@ export function PlayerDetail({
                 ]}
               />
             </div>
+            {bench && (
+              <p className="usage-key">
+                Ranked among {bench.n} {player.pos}s with {DATA.usage.qualifier}. Each bar spans
+                zero to the position's leader; the tick marks its median.
+              </p>
+            )}
           </Section>
         </>
       ) : (

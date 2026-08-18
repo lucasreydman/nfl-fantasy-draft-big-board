@@ -565,12 +565,29 @@ select {
 .trend.up { color: var(--accent); }
 .trend.down { color: #ff8b6b; }
 
-.usage { display: grid; gap: 8px; }
-.usage-row { display: grid; grid-template-columns: 48px 1fr 42px; align-items: center; gap: 9px; font-size: 11px; }
+.usage { display: grid; gap: 11px; }
+.usage-row { display: grid; gap: 4px; }
+.usage-head { display: flex; align-items: baseline; gap: 7px; font-size: 11px; }
 .usage-label { color: var(--dim); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.05em; }
-.usage-bar { height: 6px; background: var(--panel-3); border-radius: 3px; overflow: hidden; }
-.usage-bar span { display: block; height: 100%; background: var(--pos-color); border-radius: 3px; }
-.usage-val { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; font-weight: 600; }
+.usage-val { margin-left: auto; color: var(--text); font-variant-numeric: tabular-nums; font-weight: 700; }
+
+.pctile-chip {
+  font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 5px;
+  background: var(--panel-3); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.pctile-chip.elite { color: var(--accent); background: #2fe08b1a; }
+.pctile-chip.strong { color: #9fe3c0; background: #2fe08b12; }
+.pctile-chip.low { color: #ff8b6b; background: #ff8b6b14; }
+
+.usage-bar { position: relative; height: 7px; background: var(--panel-3); border-radius: 4px; }
+.usage-fill { display: block; height: 100%; background: var(--pos-color); border-radius: 4px; opacity: 0.55; }
+.usage-fill.elite, .usage-fill.strong { opacity: 1; }
+/* Where the median of the position sits on this scale. */
+.usage-tick {
+  position: absolute; top: -2px; bottom: -2px; width: 1px;
+  background: var(--text); opacity: 0.45; border-radius: 1px;
+}
+.usage-key { margin: 10px 0 0; font-size: 10px; line-height: 1.5; color: var(--dim); }
 
 .detail-note { margin: 0; font-size: 11.5px; color: var(--dim); }
 

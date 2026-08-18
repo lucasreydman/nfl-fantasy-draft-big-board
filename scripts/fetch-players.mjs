@@ -74,6 +74,9 @@ for (const p of sleeperList) {
   push(byName, n)
 }
 
+// Kickers and team defenses are deliberately excluded: this board is skill players only.
+const POS_ORDER = ['QB', 'RB', 'WR', 'TE']
+
 // ---------- season stats: prior-year actuals + current-year projections ----------
 
 const PRIOR = season - 1
@@ -143,10 +146,66 @@ const compact = (o) => {
   return Object.keys(out).length ? out : null
 }
 
+// ---------- usage benchmarks: where a share sits among the position ----------
+
+/**
+ * A share is meaningless without the field it was run against. Every player who held a real
+ * role last season is pooled by position, so a card can say "3rd of 61 qualified RBs" instead
+ * of leaving the reader to guess whether 60% of the carries is a lot.
+ */
+const QUAL_GAMES = 6
+const QUAL_SNAP_PCT = 20
+const USAGE_METRICS = ['snapPct', 'rushShare', 'tgtShare', 'rzOpp']
+
+const usageOf = (st, tm) => {
+  const tt = teamTotals.get(tm)
+  return {
+    snapPct: share(st.off_snp ?? 0, st.tm_off_snp ?? 0),
+    rushShare: tt ? share(st.rush_att ?? 0, tt.rush) : null,
+    tgtShare: tt ? share(st.rec_tgt ?? 0, tt.tgt) : null,
+    // A count, not a share: goal-line work is scarce enough that the raw number is the story.
+    rzOpp: nz((st.rush_rz_att ?? 0) + (st.rec_rz_tgt ?? 0)),
+  }
+}
+
+/** Value at `frac` down a descending list — 0.5 is the median, 0.1 the top decile. */
+const at = (desc, frac) => desc[Math.min(desc.length - 1, Math.floor(desc.length * frac))] ?? 0
+
+const usageRankById = new Map()
+const benchmarks = {}
+
+for (const pos of POS_ORDER) {
+  const pool = []
+  for (const row of actualByPos[pos] ?? []) {
+    const st = row.stats
+    if (!st || (st.gp ?? 0) < QUAL_GAMES) continue
+    const u = usageOf(st, statTeamById.get(row.player_id))
+    if ((u.snapPct ?? 0) < QUAL_SNAP_PCT) continue
+    pool.push({ id: row.player_id, ...u })
+  }
+
+  const n = pool.length
+  benchmarks[pos] = { n }
+  for (const metric of USAGE_METRICS) {
+    const desc = [...pool].sort((a, b) => (b[metric] ?? 0) - (a[metric] ?? 0))
+    desc.forEach((p, i) => {
+      const entry = usageRankById.get(p.id) ?? {}
+      entry[metric] = { rank: i + 1, pctile: n > 1 ? Math.round(((n - 1 - i) / (n - 1)) * 100) : 100 }
+      usageRankById.set(p.id, entry)
+    })
+    const vals = desc.map((p) => p[metric] ?? 0)
+    benchmarks[pos][metric] = { med: at(vals, 0.5), hi: at(vals, 0.1), max: vals[0] ?? 0 }
+  }
+  console.log(`  ${pos}: ${n} qualified (snap med ${benchmarks[pos].snapPct.med}%, top decile ${benchmarks[pos].snapPct.hi}%)`)
+}
+
 function lastSeason(sleeperId) {
   const st = sleeperId && statById.get(sleeperId)
   if (!st || !st.gp) return null
-  const tt = teamTotals.get(statTeamById.get(sleeperId))
+  const usage = usageOf(st, statTeamById.get(sleeperId))
+  const ranks = usageRankById.get(sleeperId) ?? {}
+  // Everyone with no share of a category ties at zero, so a rank there would be noise.
+  const rankOf = (metric) => (usage[metric] == null ? {} : (ranks[metric] ?? {}))
   const tgt = st.rec_tgt ?? 0
   return compact({
     season: PRIOR,
@@ -158,14 +217,18 @@ function lastSeason(sleeperId) {
     ppg: st.gp ? r1((st.pts_ppr ?? 0) / st.gp) : null,
     posRank: nz(st.pos_rank_ppr),
     ovrRank: nz(st.rank_ppr),
-    snapPct: share(st.off_snp ?? 0, st.tm_off_snp ?? 0),
+    snapRank: rankOf('snapPct').rank ?? null,
+    snapPctile: rankOf('snapPct').pctile ?? null,
+    snapPct: usage.snapPct,
     scrimYd: nz(st.rush_rec_yd),
     tds: nz(st.anytime_tds),
     fd: nz((st.rush_fd ?? 0) + (st.rec_fd ?? 0)),
     fum: nz(st.fum_lost ?? st.fum),
     // receiving
     tgt: nz(tgt),
-    tgtShare: tt ? share(tgt, tt.tgt) : null,
+    tgtShare: usage.tgtShare,
+    tgtRank: rankOf('tgtShare').rank ?? null,
+    tgtPctile: rankOf('tgtShare').pctile ?? null,
     rec: nz(st.rec),
     recYd: nz(st.rec_yd),
     recTd: nz(st.rec_td),
@@ -177,11 +240,16 @@ function lastSeason(sleeperId) {
     drops: nz(st.rec_drop),
     // rushing
     rushAtt: nz(st.rush_att),
-    rushShare: tt ? share(st.rush_att ?? 0, tt.rush) : null,
+    rushShare: usage.rushShare,
+    rushRank: rankOf('rushShare').rank ?? null,
+    rushPctile: rankOf('rushShare').pctile ?? null,
     rushYd: nz(st.rush_yd),
     rushTd: nz(st.rush_td),
     ypc: r1(st.rush_ypa),
     rzCarry: nz(st.rush_rz_att),
+    rzOpp: usage.rzOpp,
+    rzRank: rankOf('rzOpp').rank ?? null,
+    rzPctile: rankOf('rzOpp').pctile ?? null,
     brokenTkl: nz(st.rush_btkl),
     // passing
     passAtt: nz(st.pass_att),
@@ -222,8 +290,6 @@ function projection(sleeperId) {
   })
 }
 
-// Kickers and team defenses are deliberately excluded: this board is skill players only.
-const POS_ORDER = ['QB', 'RB', 'WR', 'TE']
 const missed = []
 const players = []
 const seen = new Set()
@@ -281,6 +347,11 @@ const payload = {
   season,
   generatedAt: new Date().toISOString(),
   source: { adp: 'fantasyfootballcalculator.com (PPR, 10-team)', meta: adp.ppr.meta, players: 'sleeper.app', stats: `sleeper.app (${PRIOR} actuals, ${season} projections)` },
+  usage: {
+    season: PRIOR,
+    qualifier: `≥${QUAL_GAMES} games and ≥${QUAL_SNAP_PCT}% of team snaps`,
+    byPos: benchmarks,
+  },
   players: all,
 }
 
