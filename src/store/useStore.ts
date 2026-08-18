@@ -18,6 +18,8 @@ const newTierId = () => `tier-${Date.now().toString(36)}-${tierSeq++}`
 export type View = 'board' | 'stats' | 'draft'
 export type BoardMode = 'overall' | 'positional'
 export type CardSize = 'sm' | 'md' | 'lg'
+/** What the CPU teams value: the public market, or your own rankings. */
+export type CpuSource = 'adp' | 'board'
 
 interface State {
   view: View
@@ -38,6 +40,7 @@ interface State {
   picks: Pick[]
   autoPick: boolean
   speed: number
+  cpuSource: CpuSource
 
   setView: (v: View) => void
   setBoardMode: (m: BoardMode) => void
@@ -64,6 +67,7 @@ interface State {
   setRounds: (n: number) => void
   setMySlot: (n: number) => void
   setAutoPick: (v: boolean) => void
+  setCpuSource: (v: CpuSource) => void
   setSpeed: (n: number) => void
   draftPlayer: (playerId: string, auto?: boolean) => void
   runCpuPick: () => void
@@ -91,6 +95,7 @@ export const useStore = create<State>()(
       picks: [],
       autoPick: true,
       speed: 550,
+      cpuSource: 'adp',
 
       setView: (view) => set({ view }),
       setBoardMode: (boardMode) => set({ boardMode }),
@@ -228,6 +233,7 @@ export const useStore = create<State>()(
       setRounds: (rounds) => set({ rounds, picks: [] }),
       setMySlot: (mySlot) => set({ mySlot }),
       setAutoPick: (autoPick) => set({ autoPick }),
+      setCpuSource: (cpuSource) => set({ cpuSource }),
       setSpeed: (speed) => set({ speed }),
 
       draftPlayer: (playerId, auto = false) =>
@@ -258,7 +264,17 @@ export const useStore = create<State>()(
         if (slot === s.mySlot) return
 
         const taken = new Set(s.picks.map((p) => p.playerId))
-        const available = [...PLAYERS].filter((p) => !taken.has(p.id)).sort((a, b) => a.adp - b.adp)
+
+        // Worst case: the whole room shares your rankings, so every player you like is gone
+        // by the time you would have taken him. Ordering by the board is the entire trick.
+        const byBoard = new Map<string, number>()
+        if (s.cpuSource === 'board') {
+          let n = 0
+          for (const item of s.items) if (item.kind === 'player') byBoard.set(item.id, ++n)
+        }
+        const order = (p: Player) =>
+          s.cpuSource === 'board' ? byBoard.get(p.id) ?? Number.MAX_SAFE_INTEGER : p.adp
+        const available = [...PLAYERS].filter((p) => !taken.has(p.id)).sort((a, b) => order(a) - order(b))
         const roster = s.picks
           .filter((p) => p.slot === slot)
           .map((p) => PLAYER_BY_ID.get(p.playerId))
@@ -269,6 +285,8 @@ export const useStore = create<State>()(
           roster,
           round: roundForPick(overall, s.teams),
           rand: Math.random,
+          // No jitter in worst-case mode — the point is that nobody misvalues your guys.
+          noise: s.cpuSource === 'board' ? 0 : 6,
         })
         if (choice) get().draftPlayer(choice.id, true)
       },
@@ -286,6 +304,7 @@ export const useStore = create<State>()(
         mySlot: s.mySlot,
         picks: s.picks,
         autoPick: s.autoPick,
+        cpuSource: s.cpuSource,
         speed: s.speed,
         boardMode: s.boardMode,
         cardSize: s.cardSize,

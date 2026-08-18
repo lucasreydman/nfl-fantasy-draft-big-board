@@ -8,8 +8,8 @@ import { Avatar } from './Avatar'
 
 export function DraftView() {
   const {
-    items, teams, rounds, mySlot, picks, autoPick, speed, query, posFilter,
-    setTeams, setRounds, setMySlot, setAutoPick, setSpeed, setQuery, setPosFilter,
+    items, teams, rounds, mySlot, picks, autoPick, speed, query, posFilter, cpuSource,
+    setTeams, setRounds, setMySlot, setAutoPick, setSpeed, setQuery, setPosFilter, setCpuSource,
     draftPlayer, runCpuPick, undoPick, resetDraft, setView,
   } = useStore()
 
@@ -108,6 +108,23 @@ export function DraftView() {
         <label className="check">
           <input type="checkbox" checked={autoPick} onChange={(e) => setAutoPick(e.target.checked)} />
           Auto-pick CPUs
+        </label>
+
+        {/* Who the room agrees with. Your own board is the stress test: nobody lets a guy slide. */}
+        <label className="check cpu-source">
+          CPUs value
+          <div className="segmented">
+            <button className={cpuSource === 'adp' ? 'on' : ''} onClick={() => setCpuSource('adp')}>
+              Consensus
+            </button>
+            <button
+              className={cpuSource === 'board' ? 'on' : ''}
+              onClick={() => setCpuSource('board')}
+              title="Every CPU drafts strictly off your board — the worst case for you"
+            >
+              My board
+            </button>
+          </div>
         </label>
         <label className="speed">
           Speed

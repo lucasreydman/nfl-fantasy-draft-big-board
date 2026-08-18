@@ -28,24 +28,31 @@ const MAX_BY_POS: Record<Pos, number> = { QB: 3, RB: 8, WR: 9, TE: 3 }
 const STARTERS: Record<Pos, number> = { QB: 1, RB: 2, WR: 2, TE: 1 }
 
 interface CpuArgs {
+  /** Pre-sorted best-first: by ADP, or by the user's own board. */
   available: Player[]
   roster: Player[]
   round: number
   rand: () => number
+  /**
+   * Width of the random jitter applied to the ordering. The default keeps two mocks from
+   * ever being identical; zero makes the room agree with the ordering exactly, which is
+   * what a worst-case run wants.
+   */
+  noise?: number
 }
 
 /**
- * CPU pick: value-based off ADP with roster-need nudges, a little noise so no
- * two mocks are identical, and the usual "nobody drafts a kicker early" rules.
+ * CPU pick: value-based off whatever order it was handed, with roster-need nudges and a
+ * little noise so no two mocks are identical.
  */
-export function cpuPick({ available, roster, round, rand }: CpuArgs): Player | undefined {
+export function cpuPick({ available, roster, round, rand, noise = 6 }: CpuArgs): Player | undefined {
   const counts = roster.reduce<Record<string, number>>((acc, p) => {
     acc[p.pos] = (acc[p.pos] ?? 0) + 1
     return acc
   }, {})
   const scored = available.slice(0, 40).map((p, i) => {
     const have = counts[p.pos] ?? 0
-    let score = i + rand() * 6 - 3 // ADP order + noise
+    let score = i + (noise ? rand() * noise - noise / 2 : 0)
 
     if (have >= MAX_BY_POS[p.pos]) score += 500
     if (have < STARTERS[p.pos]) score -= 6 // fill starters first
