@@ -15,6 +15,7 @@ Skill positions only — **no kickers, no team defenses**, anywhere in the app.
 - **Auto-tier** cuts tiers where the ADP gap to the next player is unusually large *for that part of the board* — the threshold is a multiple of the local median gap, so it doesn't produce 14-player blocks at the top and one-man tiers at the bottom. The slider trades broad tiers for fine ones.
 - Every card shows how far you've moved a player off consensus (`+12` = twelve spots higher than the consensus rank), and the side panel ranks your biggest swings. The comparison is rank-vs-rank, not rank-vs-raw-ADP — ADP is a pick number and compresses past the end of the draft, which makes deep players look wildly mis-ranked when they aren't.
 - **Pick lines** mark where your picks land. Enter your draft slot (league size follows the mock draft setting, 10 by default) and the board draws a static dashed marker at each of your snake picks — `1.05 · Your 1st pick · round 1 · #5 overall` — so you can see at a glance which players should still be on the table when you're up. They're derived from slot and league size, never stored in the ranking, and toggle off in one click. Hidden while the list is filtered, since they only mean something against the full board.
+- **The player card** carries the whole case for a player, not just his ADP: the draft market (PPR/half/standard ADP, draft range, standard deviation), this season's projection with its projected positional finish, last season's actuals broken out by passing/rushing/receiving, and a usage block — snap share, carry share, target share, red-zone touches — measured against his own offense's totals. Rookies fall back to projections alone.
 - Set a player's rank directly, nudge with the arrows, or drag. Export/import the board as JSON.
 
 **Mock Draft** — 10-team snake (8/12/14 also available, 10–18 rounds).
@@ -32,7 +33,7 @@ Drafted players gray out on the big board, so the two views stay in sync. Everyt
 Two public sources, merged at build time into `src/data/players.json`:
 
 - **[FantasyFootballCalculator](https://fantasyfootballcalculator.com)** — live consensus ADP from real 10-team PPR mocks, plus half-PPR/standard ADP, draft ranges, and bye weeks.
-- **[Sleeper](https://docs.sleeper.com)** — player metadata (team, age, experience, college, injury status) and the headshots/team logos served from `sleepercdn.com`.
+- **[Sleeper](https://docs.sleeper.com)** — player metadata (team, age, experience, college, injury status), last season's actual stats, this season's projections, and the headshots/team logos served from `sleepercdn.com`. Usage shares are computed at build time against each team's own season totals for targets and carries, using the team a player actually played for last year rather than his current one.
 
 The pool is **only players with a real consensus ADP** — around 210 for a 10-team PPR league. Kickers and team defenses are filtered out at the source, and players with no ADP row are not carried at all, so there is nothing in the board you can't meaningfully rank.
 

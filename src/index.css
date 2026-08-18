@@ -545,6 +545,35 @@ select {
 .stat-value { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .stat-label { font-size: 9.5px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; }
 
+.detail-sec { margin-top: 4px; }
+.detail-sec .stat-grid { margin-top: 0; }
+.detail-sec h3 { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.sec-note { display: flex; align-items: baseline; gap: 5px; font-size: 10.5px; letter-spacing: 0; text-transform: none; }
+.rank-chip {
+  font-weight: 800; font-size: 10.5px; color: var(--pos-color);
+  background: color-mix(in srgb, var(--pos-color) 16%, transparent);
+  padding: 2px 6px; border-radius: 5px;
+}
+
+.statlines { display: grid; gap: 5px; margin-top: 9px; }
+.statlines:empty { display: none; }
+.statline { display: grid; grid-template-columns: 40px 1fr; gap: 8px; align-items: baseline; font-size: 11.5px; }
+.statline-label { color: var(--dim); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.05em; }
+.statline-val { color: var(--muted); font-variant-numeric: tabular-nums; line-height: 1.5; }
+
+.trend { margin-top: 9px; font-size: 11px; font-weight: 600; color: var(--muted); }
+.trend.up { color: var(--accent); }
+.trend.down { color: #ff8b6b; }
+
+.usage { display: grid; gap: 8px; }
+.usage-row { display: grid; grid-template-columns: 48px 1fr 42px; align-items: center; gap: 9px; font-size: 11px; }
+.usage-label { color: var(--dim); text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.05em; }
+.usage-bar { height: 6px; background: var(--panel-3); border-radius: 3px; overflow: hidden; }
+.usage-bar span { display: block; height: 100%; background: var(--pos-color); border-radius: 3px; }
+.usage-val { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; font-weight: 600; }
+
+.detail-note { margin: 0; font-size: 11.5px; color: var(--dim); }
+
 .tally { display: grid; gap: 7px; }
 .tally-row { display: grid; grid-template-columns: 32px 1fr 22px; align-items: center; gap: 9px; font-size: 11.5px; }
 .tally-pos { font-weight: 800; color: var(--pos-color); }

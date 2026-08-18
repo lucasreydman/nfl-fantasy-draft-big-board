@@ -1,5 +1,54 @@
 export type Pos = 'QB' | 'RB' | 'WR' | 'TE'
 
+/**
+ * A season of Sleeper stats. Every counting field is optional: the fetch script strips
+ * anything a player did not record, and projections carry a thinner set than actuals.
+ */
+export interface StatLine {
+  season: number
+  /** Where the player finished (or is projected to finish) at his position, league-wide. */
+  posRank?: number
+  ovrRank?: number
+  gp?: number
+  gs?: number
+  ptsPpr?: number
+  ptsHalf?: number
+  ptsStd?: number
+  ppg?: number
+  snapPct?: number
+  scrimYd?: number
+  tds?: number
+  fd?: number
+  fum?: number
+  tgt?: number
+  tgtShare?: number
+  rec?: number
+  recYd?: number
+  recTd?: number
+  ypr?: number
+  ypt?: number
+  catchPct?: number
+  airYd?: number
+  rzTgt?: number
+  drops?: number
+  rushAtt?: number
+  rushShare?: number
+  rushYd?: number
+  rushTd?: number
+  ypc?: number
+  rzCarry?: number
+  brokenTkl?: number
+  passAtt?: number
+  passCmp?: number
+  passYd?: number
+  passTd?: number
+  passInt?: number
+  cmpPct?: number
+  passYpa?: number
+  passRtg?: number
+  sacks?: number
+}
+
 export interface Player {
   id: string
   sleeperId: string | null
@@ -22,6 +71,10 @@ export interface Player {
   college: string | null
   depthOrder: number | null
   injury: string | null
+  /** Prior season's actual production. Null for rookies. */
+  last: StatLine | null
+  /** This season's Sleeper projection. */
+  proj: StatLine | null
   /** Position in the consensus ADP order. */
   rank: number
 }
@@ -29,7 +82,7 @@ export interface Player {
 export interface PlayerData {
   season: number
   generatedAt: string
-  source: { adp: string; meta: Record<string, unknown>; players: string }
+  source: { adp: string; meta: Record<string, unknown>; players: string; stats: string }
   players: Player[]
 }
 

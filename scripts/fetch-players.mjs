@@ -1,7 +1,7 @@
 /**
  * Builds src/data/players.json from two public sources:
  *   - FantasyFootballCalculator: live consensus ADP (order + bye weeks)
- *   - Sleeper: player metadata + headshot ids
+ *   - Sleeper: player metadata, headshot ids, prior-season stats, current-season projections
  * Run: npm run fetch:players
  */
 import { writeFileSync } from 'node:fs'
@@ -74,6 +74,154 @@ for (const p of sleeperList) {
   push(byName, n)
 }
 
+// ---------- season stats: prior-year actuals + current-year projections ----------
+
+const PRIOR = season - 1
+// FB is fetched only so team target/carry denominators are complete; it never lands on the board.
+const STAT_POS = ['QB', 'RB', 'WR', 'TE', 'FB']
+
+const byPosRows = async (kind, yr) => {
+  const out = {}
+  for (const p of STAT_POS) {
+    out[p] = await json(
+      `https://api.sleeper.app/${kind}/nfl/${yr}?season_type=regular&position[]=${p}&order_by=pts_ppr`,
+    )
+  }
+  return out
+}
+
+console.log(`Fetching ${PRIOR} stats and ${season} projections…`)
+const actualByPos = await byPosRows('stats', PRIOR)
+const projByPos = await byPosRows('projections', season)
+
+const statById = new Map()
+const projById = new Map()
+/** The team a player actually played for last season — the right denominator for usage share. */
+const statTeamById = new Map()
+/** Team-level denominators so target/carry share is measured against a player's own offense. */
+const teamTotals = new Map()
+
+for (const rows of Object.values(actualByPos)) {
+  for (const row of rows) {
+    const st = row.stats
+    if (!st) continue
+    statById.set(row.player_id, st)
+    const tm = team(row.team)
+    if (!tm) continue
+    statTeamById.set(row.player_id, tm)
+    const t = teamTotals.get(tm) ?? { tgt: 0, rush: 0, pass: 0 }
+    t.tgt += st.rec_tgt ?? 0
+    t.rush += st.rush_att ?? 0
+    t.pass += st.pass_att ?? 0
+    teamTotals.set(tm, t)
+  }
+}
+
+/** Projected finish at the position across the whole league, not just the board. */
+const projPosRank = new Map()
+for (const rows of Object.values(projByPos)) {
+  const scored = rows.filter((r) => r.stats?.pts_ppr > 0).sort((a, b) => b.stats.pts_ppr - a.stats.pts_ppr)
+  scored.forEach((r, i) => {
+    projById.set(r.player_id, r.stats)
+    projPosRank.set(r.player_id, i + 1)
+  })
+  for (const r of rows) if (r.stats && !projById.has(r.player_id)) projById.set(r.player_id, r.stats)
+}
+
+console.log(`  stats: ${statById.size} players, projections: ${projById.size} players, ${teamTotals.size} teams`)
+
+const r1 = (n) => (typeof n === 'number' ? Math.round(n * 10) / 10 : null)
+const r0 = (n) => (typeof n === 'number' ? Math.round(n) : null)
+const share = (part, whole) => (whole > 0 && part > 0 ? Math.round((part / whole) * 1000) / 10 : null)
+const nz = (n) => (typeof n === 'number' && n !== 0 ? n : null)
+
+/** Drop null/undefined keys so players.json stays lean. */
+const compact = (o) => {
+  if (!o) return null
+  const out = {}
+  for (const [k, v] of Object.entries(o)) if (v != null) out[k] = v
+  return Object.keys(out).length ? out : null
+}
+
+function lastSeason(sleeperId) {
+  const st = sleeperId && statById.get(sleeperId)
+  if (!st || !st.gp) return null
+  const tt = teamTotals.get(statTeamById.get(sleeperId))
+  const tgt = st.rec_tgt ?? 0
+  return compact({
+    season: PRIOR,
+    gp: st.gp,
+    gs: nz(st.gs),
+    ptsPpr: r1(st.pts_ppr),
+    ptsHalf: r1(st.pts_half_ppr),
+    ptsStd: r1(st.pts_std),
+    ppg: st.gp ? r1((st.pts_ppr ?? 0) / st.gp) : null,
+    posRank: nz(st.pos_rank_ppr),
+    ovrRank: nz(st.rank_ppr),
+    snapPct: share(st.off_snp ?? 0, st.tm_off_snp ?? 0),
+    scrimYd: nz(st.rush_rec_yd),
+    tds: nz(st.anytime_tds),
+    fd: nz((st.rush_fd ?? 0) + (st.rec_fd ?? 0)),
+    fum: nz(st.fum_lost ?? st.fum),
+    // receiving
+    tgt: nz(tgt),
+    tgtShare: tt ? share(tgt, tt.tgt) : null,
+    rec: nz(st.rec),
+    recYd: nz(st.rec_yd),
+    recTd: nz(st.rec_td),
+    ypr: r1(st.rec_ypr),
+    ypt: r1(st.rec_ypt),
+    catchPct: share(st.rec ?? 0, tgt),
+    airYd: nz(st.rec_air_yd),
+    rzTgt: nz(st.rec_rz_tgt),
+    drops: nz(st.rec_drop),
+    // rushing
+    rushAtt: nz(st.rush_att),
+    rushShare: tt ? share(st.rush_att ?? 0, tt.rush) : null,
+    rushYd: nz(st.rush_yd),
+    rushTd: nz(st.rush_td),
+    ypc: r1(st.rush_ypa),
+    rzCarry: nz(st.rush_rz_att),
+    brokenTkl: nz(st.rush_btkl),
+    // passing
+    passAtt: nz(st.pass_att),
+    passCmp: nz(st.pass_cmp),
+    passYd: nz(st.pass_yd),
+    passTd: nz(st.pass_td),
+    passInt: nz(st.pass_int),
+    cmpPct: r1(st.cmp_pct),
+    passYpa: r1(st.pass_ypa),
+    passRtg: r1(st.pass_rtg),
+    sacks: nz(st.pass_sack),
+  })
+}
+
+function projection(sleeperId) {
+  const st = sleeperId && projById.get(sleeperId)
+  if (!st || !(st.pts_ppr > 0)) return null
+  return compact({
+    season,
+    posRank: projPosRank.get(sleeperId) ?? null,
+    gp: r0(st.gp),
+    ptsPpr: r1(st.pts_ppr),
+    ptsHalf: r1(st.pts_half_ppr),
+    ptsStd: r1(st.pts_std),
+    ppg: st.gp ? r1(st.pts_ppr / st.gp) : null,
+    rec: r0(nz(st.rec)),
+    recYd: r0(nz(st.rec_yd)),
+    recTd: r1(nz(st.rec_td)),
+    rushAtt: r0(nz(st.rush_att)),
+    rushYd: r0(nz(st.rush_yd)),
+    rushTd: r1(nz(st.rush_td)),
+    passAtt: r0(nz(st.pass_att)),
+    passCmp: r0(nz(st.pass_cmp)),
+    passYd: r0(nz(st.pass_yd)),
+    passTd: r1(nz(st.pass_td)),
+    passInt: r1(nz(st.pass_int)),
+    cmpPct: r1(st.cmp_pct),
+  })
+}
+
 // Kickers and team defenses are deliberately excluded: this board is skill players only.
 const POS_ORDER = ['QB', 'RB', 'WR', 'TE']
 const missed = []
@@ -116,6 +264,8 @@ for (const row of adp.ppr.players) {
     college: s?.college ?? null,
     depthOrder: s?.depth_chart_order ?? null,
     injury: s?.injury_status ?? null,
+    last: lastSeason(s?.player_id ?? null),
+    proj: projection(s?.player_id ?? null),
   })
 }
 
@@ -130,7 +280,7 @@ for (const p of all) byPos[p.pos] = (byPos[p.pos] ?? 0) + 1
 const payload = {
   season,
   generatedAt: new Date().toISOString(),
-  source: { adp: 'fantasyfootballcalculator.com (PPR, 10-team)', meta: adp.ppr.meta, players: 'sleeper.app' },
+  source: { adp: 'fantasyfootballcalculator.com (PPR, 10-team)', meta: adp.ppr.meta, players: 'sleeper.app', stats: `sleeper.app (${PRIOR} actuals, ${season} projections)` },
   players: all,
 }
 
