@@ -75,7 +75,7 @@ export function DraftView() {
       .filter((p): p is Player => Boolean(p))
 
   const roster = rosterFor(rosterSlot)
-  const { lineup, bench } = fillLineup(roster)
+  const { lineup, bench, extra } = fillLineup(roster)
   const myUpcoming = picksForSlot(mySlot, teams, rounds).filter((n) => n >= current).slice(0, 3)
 
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -257,14 +257,35 @@ export function DraftView() {
                 )}
               </div>
             ))}
-            {bench.length > 0 && <div className="lineup-divider">Bench</div>}
-            {bench.map((player) => (
+            <div className="lineup-divider">Bench</div>
+            {bench.map((player, i) => (
+              <div
+                key={player?.id ?? `bn-${i}`}
+                className={`lineup-row ${player ? '' : 'lineup-empty'}`}
+                style={player ? { ['--pos-color' as string]: POS_COLOR[player.pos] } : undefined}
+              >
+                <span className="lineup-slot">BN</span>
+                {player ? (
+                  <>
+                    <Avatar player={player} size={26} />
+                    <span className="lineup-name">{player.name}</span>
+                    <span className="dim">{player.team}{player.bye ? ` · ${player.bye}` : ''}</span>
+                  </>
+                ) : (
+                  <span className="dim">Empty</span>
+                )}
+              </div>
+            ))}
+
+            {/* Anything past the bench in a longer draft — kept visible rather than dropped. */}
+            {extra.length > 0 && <div className="lineup-divider">Over roster limit</div>}
+            {extra.map((player) => (
               <div
                 key={player.id}
                 className="lineup-row"
                 style={{ ['--pos-color' as string]: POS_COLOR[player.pos] }}
               >
-                <span className="lineup-slot">BN</span>
+                <span className="lineup-slot">+</span>
                 <Avatar player={player} size={26} />
                 <span className="lineup-name">{player.name}</span>
                 <span className="dim">{player.team}{player.bye ? ` · ${player.bye}` : ''}</span>

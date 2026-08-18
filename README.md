@@ -33,7 +33,7 @@ The three spread columns are the point of it. Sort by **Δ PPG** and the top of 
 - CPU teams pick on ADP with roster-need weighting and a little noise, so no two mocks are identical. They fill starters first and won't stockpile early QBs.
 - **CPUs value: Consensus / My board.** Switch them to your board and the whole room shares your rankings — every player you like is gone by the pick you'd have taken him, which is the worst case a board can face. The jitter comes off in this mode too, since the point is that nobody misvalues your guys. Roster needs still apply, because ten teams drafting one list with no needs would just take ten running backs. Promote a 150th-ranked player to the top of your board and watch him go 1.01.
 - Sim to your pick, undo, auto-pick toggle, adjustable speed.
-- Live roster with starters filled into lineup slots (QB/RB/RB/WR/WR/TE/FLEX) and the rest on the bench.
+- Live roster with starters filled into lineup slots — **QB/RB/RB/WR/WR/TE/FLEX/FLEX**, then a **six-seat bench**, empties shown as empties. Kickers and defenses aren't on this board, so a 15-round draft fills one more skill player than the 14 seats hold; the extra sits under *Over roster limit* rather than disappearing. The CPUs know about the second flex — their starter targets run to three backs and three receivers, so a third good runner reads as a starter rather than a luxury.
 
 Drafted players gray out on the big board, so the two views stay in sync. Everything persists to `localStorage`.
 

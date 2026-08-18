@@ -21,11 +21,17 @@ export function picksForSlot(slot: number, teams: number, rounds: number) {
   return out
 }
 
-export const ROSTER_SLOTS = ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'FLEX'] as const
+export const ROSTER_SLOTS = ['QB', 'RB', 'RB', 'WR', 'WR', 'TE', 'FLEX', 'FLEX'] as const
 export const FLEX_POS: Pos[] = ['RB', 'WR', 'TE']
+export const BENCH_SLOTS = 6
 
 const MAX_BY_POS: Record<Pos, number> = { QB: 3, RB: 8, WR: 9, TE: 3 }
-const STARTERS: Record<Pos, number> = { QB: 1, RB: 2, WR: 2, TE: 1 }
+/**
+ * What a team is really trying to fill. The two flex spots almost always end up as a back
+ * or a receiver, so those targets run past their dedicated slots — otherwise a CPU treats
+ * its third good running back as a luxury when it is actually a starter.
+ */
+const STARTERS: Record<Pos, number> = { QB: 1, RB: 3, WR: 3, TE: 1 }
 
 interface CpuArgs {
   /** Pre-sorted best-first: by ADP, or by the user's own board. */
@@ -81,5 +87,7 @@ export function fillLineup(roster: Player[]) {
         ? take((p) => FLEX_POS.includes(p.pos))
         : take((p) => p.pos === slot),
   }))
-  return { lineup, bench: pool }
+  // The bench is a fixed number of seats, so empties show as empties rather than as nothing.
+  const bench = Array.from({ length: BENCH_SLOTS }, () => pool.shift() ?? null)
+  return { lineup, bench, extra: pool }
 }
