@@ -7,6 +7,7 @@
 import { writeFileSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { ADJ_RULE, POS as POS_ORDER, QUALIFIER, STAT_POS, buildBenchmarks, compact, loadSeasonContext, withRanks } from './stats.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const SEASON = Number(process.env.SEASON ?? new Date().getFullYear())
@@ -74,52 +75,22 @@ for (const p of sleeperList) {
   push(byName, n)
 }
 
-// Kickers and team defenses are deliberately excluded: this board is skill players only.
-const POS_ORDER = ['QB', 'RB', 'WR', 'TE']
+// Kickers and team defenses are deliberately excluded: this board is skill players only,
+// so POS_ORDER stops at the four positions the module ranks.
 
-// ---------- season stats: prior-year actuals + current-year projections ----------
+// ---------- season stats: prior-year actuals, weekly context, current-year projections ----------
 
 const PRIOR = season - 1
-// FB is fetched only so team target/carry denominators are complete; it never lands on the board.
-const STAT_POS = ['QB', 'RB', 'WR', 'TE', 'FB']
 
-const byPosRows = async (kind, yr) => {
-  const out = {}
-  for (const p of STAT_POS) {
-    out[p] = await json(
-      `https://api.sleeper.app/${kind}/nfl/${yr}?season_type=regular&position[]=${p}&order_by=pts_ppr`,
-    )
-  }
-  return out
+console.log(`Fetching ${season} projections…`)
+const projByPos = {}
+for (const p of STAT_POS) {
+  projByPos[p] = await json(
+    `https://api.sleeper.app/projections/nfl/${season}?season_type=regular&position[]=${p}&order_by=pts_ppr`,
+  )
 }
 
-console.log(`Fetching ${PRIOR} stats and ${season} projections…`)
-const actualByPos = await byPosRows('stats', PRIOR)
-const projByPos = await byPosRows('projections', season)
-
-const statById = new Map()
 const projById = new Map()
-/** The team a player actually played for last season — the right denominator for usage share. */
-const statTeamById = new Map()
-/** Team-level denominators so target/carry share is measured against a player's own offense. */
-const teamTotals = new Map()
-
-for (const rows of Object.values(actualByPos)) {
-  for (const row of rows) {
-    const st = row.stats
-    if (!st) continue
-    statById.set(row.player_id, st)
-    const tm = team(row.team)
-    if (!tm) continue
-    statTeamById.set(row.player_id, tm)
-    const t = teamTotals.get(tm) ?? { tgt: 0, rush: 0, pass: 0 }
-    t.tgt += st.rec_tgt ?? 0
-    t.rush += st.rush_att ?? 0
-    t.pass += st.pass_att ?? 0
-    teamTotals.set(tm, t)
-  }
-}
-
 /** Projected finish at the position across the whole league, not just the board. */
 const projPosRank = new Map()
 for (const rows of Object.values(projByPos)) {
@@ -131,138 +102,32 @@ for (const rows of Object.values(projByPos)) {
   for (const r of rows) if (r.stats && !projById.has(r.player_id)) projById.set(r.player_id, r.stats)
 }
 
-console.log(`  stats: ${statById.size} players, projections: ${projById.size} players, ${teamTotals.size} teams`)
+const ctx = await loadSeasonContext({ json, year: PRIOR, team, log: (m) => console.log(m) })
+const { ranks, benchmarks, poolSize } = buildBenchmarks(ctx)
+console.log(`  qualified pool: ${JSON.stringify(poolSize)}`)
 
 const r1 = (n) => (typeof n === 'number' ? Math.round(n * 10) / 10 : null)
 const r0 = (n) => (typeof n === 'number' ? Math.round(n) : null)
-const share = (part, whole) => (whole > 0 && part > 0 ? Math.round((part / whole) * 1000) / 10 : null)
 const nz = (n) => (typeof n === 'number' && n !== 0 ? n : null)
 
-/** Drop null/undefined keys so players.json stays lean. */
-const compact = (o) => {
-  if (!o) return null
-  const out = {}
-  for (const [k, v] of Object.entries(o)) if (v != null) out[k] = v
-  return Object.keys(out).length ? out : null
-}
+/** Last season as it happened. */
+const lastSeason = (sleeperId) =>
+  sleeperId ? withRanks(ctx.raw(sleeperId), ranks.raw.get(sleeperId)) : null
 
-// ---------- usage benchmarks: where a share sits among the position ----------
-
-/**
- * A share is meaningless without the field it was run against. Every player who held a real
- * role last season is pooled by position, so a card can say "3rd of 61 qualified RBs" instead
- * of leaving the reader to guess whether 60% of the carries is a lot.
- */
-const QUAL_GAMES = 6
-const QUAL_SNAP_PCT = 20
-const USAGE_METRICS = ['snapPct', 'rushShare', 'tgtShare', 'rzOpp']
-
-const usageOf = (st, tm) => {
-  const tt = teamTotals.get(tm)
+/** Last season with the distorted games removed and touchdown luck priced in. */
+function adjusted(sleeperId) {
+  if (!sleeperId) return null
+  const line = withRanks(ctx.clean(sleeperId), ranks.adj.get(sleeperId))
+  if (!line) return null
+  const skips = ctx.droppedFor(sleeperId) ?? []
   return {
-    snapPct: share(st.off_snp ?? 0, st.tm_off_snp ?? 0),
-    rushShare: tt ? share(st.rush_att ?? 0, tt.rush) : null,
-    tgtShare: tt ? share(st.rec_tgt ?? 0, tt.tgt) : null,
-    // A count, not a share: goal-line work is scarce enough that the raw number is the story.
-    rzOpp: nz((st.rush_rz_att ?? 0) + (st.rec_rz_tgt ?? 0)),
+    ...line,
+    dropped: skips,
+    droppedPartial: skips.filter((s) => s.r === 'partial').length,
+    droppedQb: skips.filter((s) => s.r === 'qb').length,
   }
 }
 
-/** Value at `frac` down a descending list — 0.5 is the median, 0.1 the top decile. */
-const at = (desc, frac) => desc[Math.min(desc.length - 1, Math.floor(desc.length * frac))] ?? 0
-
-const usageRankById = new Map()
-const benchmarks = {}
-
-for (const pos of POS_ORDER) {
-  const pool = []
-  for (const row of actualByPos[pos] ?? []) {
-    const st = row.stats
-    if (!st || (st.gp ?? 0) < QUAL_GAMES) continue
-    const u = usageOf(st, statTeamById.get(row.player_id))
-    if ((u.snapPct ?? 0) < QUAL_SNAP_PCT) continue
-    pool.push({ id: row.player_id, ...u })
-  }
-
-  const n = pool.length
-  benchmarks[pos] = { n }
-  for (const metric of USAGE_METRICS) {
-    const desc = [...pool].sort((a, b) => (b[metric] ?? 0) - (a[metric] ?? 0))
-    desc.forEach((p, i) => {
-      const entry = usageRankById.get(p.id) ?? {}
-      entry[metric] = { rank: i + 1, pctile: n > 1 ? Math.round(((n - 1 - i) / (n - 1)) * 100) : 100 }
-      usageRankById.set(p.id, entry)
-    })
-    const vals = desc.map((p) => p[metric] ?? 0)
-    benchmarks[pos][metric] = { med: at(vals, 0.5), hi: at(vals, 0.1), max: vals[0] ?? 0 }
-  }
-  console.log(`  ${pos}: ${n} qualified (snap med ${benchmarks[pos].snapPct.med}%, top decile ${benchmarks[pos].snapPct.hi}%)`)
-}
-
-function lastSeason(sleeperId) {
-  const st = sleeperId && statById.get(sleeperId)
-  if (!st || !st.gp) return null
-  const usage = usageOf(st, statTeamById.get(sleeperId))
-  const ranks = usageRankById.get(sleeperId) ?? {}
-  // Everyone with no share of a category ties at zero, so a rank there would be noise.
-  const rankOf = (metric) => (usage[metric] == null ? {} : (ranks[metric] ?? {}))
-  const tgt = st.rec_tgt ?? 0
-  return compact({
-    season: PRIOR,
-    gp: st.gp,
-    gs: nz(st.gs),
-    ptsPpr: r1(st.pts_ppr),
-    ptsHalf: r1(st.pts_half_ppr),
-    ptsStd: r1(st.pts_std),
-    ppg: st.gp ? r1((st.pts_ppr ?? 0) / st.gp) : null,
-    posRank: nz(st.pos_rank_ppr),
-    ovrRank: nz(st.rank_ppr),
-    snapRank: rankOf('snapPct').rank ?? null,
-    snapPctile: rankOf('snapPct').pctile ?? null,
-    snapPct: usage.snapPct,
-    scrimYd: nz(st.rush_rec_yd),
-    tds: nz(st.anytime_tds),
-    fd: nz((st.rush_fd ?? 0) + (st.rec_fd ?? 0)),
-    fum: nz(st.fum_lost ?? st.fum),
-    // receiving
-    tgt: nz(tgt),
-    tgtShare: usage.tgtShare,
-    tgtRank: rankOf('tgtShare').rank ?? null,
-    tgtPctile: rankOf('tgtShare').pctile ?? null,
-    rec: nz(st.rec),
-    recYd: nz(st.rec_yd),
-    recTd: nz(st.rec_td),
-    ypr: r1(st.rec_ypr),
-    ypt: r1(st.rec_ypt),
-    catchPct: share(st.rec ?? 0, tgt),
-    airYd: nz(st.rec_air_yd),
-    rzTgt: nz(st.rec_rz_tgt),
-    drops: nz(st.rec_drop),
-    // rushing
-    rushAtt: nz(st.rush_att),
-    rushShare: usage.rushShare,
-    rushRank: rankOf('rushShare').rank ?? null,
-    rushPctile: rankOf('rushShare').pctile ?? null,
-    rushYd: nz(st.rush_yd),
-    rushTd: nz(st.rush_td),
-    ypc: r1(st.rush_ypa),
-    rzCarry: nz(st.rush_rz_att),
-    rzOpp: usage.rzOpp,
-    rzRank: rankOf('rzOpp').rank ?? null,
-    rzPctile: rankOf('rzOpp').pctile ?? null,
-    brokenTkl: nz(st.rush_btkl),
-    // passing
-    passAtt: nz(st.pass_att),
-    passCmp: nz(st.pass_cmp),
-    passYd: nz(st.pass_yd),
-    passTd: nz(st.pass_td),
-    passInt: nz(st.pass_int),
-    cmpPct: r1(st.cmp_pct),
-    passYpa: r1(st.pass_ypa),
-    passRtg: r1(st.pass_rtg),
-    sacks: nz(st.pass_sack),
-  })
-}
 
 function projection(sleeperId) {
   const st = sleeperId && projById.get(sleeperId)
@@ -328,9 +193,12 @@ for (const row of adp.ppr.players) {
     exp: s?.years_exp ?? null,
     number: s?.number ?? null,
     college: s?.college ?? null,
+    height: s?.height ? Number(s.height) || null : null,
+    weight: s?.weight ? Number(s.weight) || null : null,
     depthOrder: s?.depth_chart_order ?? null,
     injury: s?.injury_status ?? null,
     last: lastSeason(s?.player_id ?? null),
+    adj: adjusted(s?.player_id ?? null),
     proj: projection(s?.player_id ?? null),
   })
 }
@@ -346,11 +214,13 @@ for (const p of all) byPos[p.pos] = (byPos[p.pos] ?? 0) + 1
 const payload = {
   season,
   generatedAt: new Date().toISOString(),
-  source: { adp: 'fantasyfootballcalculator.com (PPR, 10-team)', meta: adp.ppr.meta, players: 'sleeper.app', stats: `sleeper.app (${PRIOR} actuals, ${season} projections)` },
+  source: { adp: 'fantasyfootballcalculator.com (PPR, 10-team)', meta: adp.ppr.meta, players: 'sleeper.app', stats: `sleeper.app (${PRIOR} weekly logs, ${season} projections)` },
   usage: {
     season: PRIOR,
-    qualifier: `≥${QUAL_GAMES} games and ≥${QUAL_SNAP_PCT}% of team snaps`,
-    byPos: benchmarks,
+    qualifier: QUALIFIER,
+    adjRule: ADJ_RULE,
+    xTd: ctx.model,
+    byMode: benchmarks,
   },
   players: all,
 }

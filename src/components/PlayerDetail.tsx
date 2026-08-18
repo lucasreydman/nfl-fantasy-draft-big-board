@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import type { Benchmark, Player, Pos, StatLine } from '../types'
+import type { AdjustedLine, Benchmark, Player, Pos, StatLine } from '../types'
 import { POS_COLOR, fmtAdp, ordinal, teamLogo } from '../lib/format'
-import { DATA } from '../store/useStore'
+import { DATA, useStore } from '../store/useStore'
 import { Avatar } from './Avatar'
 
 interface Props {
@@ -20,12 +20,16 @@ interface Props {
 
 const n0 = (n?: number | null) => (n == null ? null : Math.round(n).toLocaleString())
 const n1 = (n?: number | null) => (n == null ? null : n.toFixed(1))
+const trim = (n: number) => n.toFixed(1).replace(/\.0$/, '')
+const signed = (n: number) => `${n > 0 ? '+' : ''}${trim(n)}`
+const feet = (inches?: number | null) => (inches ? `${Math.floor(inches / 12)}'${inches % 12}"` : null)
 
-function Stat({ label, value }: { label: string; value: React.ReactNode }) {
+function Stat({ label, value, chip }: { label: string; value: React.ReactNode; chip?: React.ReactNode }) {
   return (
     <div className="stat">
       <div className="stat-value">{value ?? '—'}</div>
       <div className="stat-label">{label}</div>
+      {chip}
     </div>
   )
 }
@@ -104,8 +108,8 @@ const passing = (s: StatLine) => {
   return [
     s.passCmp != null && s.passAtt != null ? `${s.passCmp}/${s.passAtt}` : s.passAtt != null ? `${s.passAtt} att` : null,
     s.passYd != null ? `${n0(s.passYd)} yd` : null,
-    s.passTd != null ? `${n1(s.passTd)!.replace('.0', '')} TD` : null,
-    s.passInt != null ? `${n1(s.passInt)!.replace('.0', '')} INT` : null,
+    s.passTd != null ? `${trim(s.passTd)} TD` : null,
+    s.passInt != null ? `${trim(s.passInt)} INT` : null,
     s.cmpPct != null ? `${s.cmpPct}% cmp` : null,
     ypa != null ? `${n1(ypa)} Y/A` : null,
     s.passRtg != null ? `${s.passRtg} rtg` : null,
@@ -118,7 +122,7 @@ const rushing = (s: StatLine) => {
   return [
     s.rushAtt != null ? `${n0(s.rushAtt)} car` : null,
     s.rushYd != null ? `${n0(s.rushYd)} yd` : null,
-    s.rushTd != null ? `${n1(s.rushTd)!.replace('.0', '')} TD` : null,
+    s.rushTd != null ? `${trim(s.rushTd)} TD` : null,
     ypc != null ? `${n1(ypc)} Y/C` : null,
     s.brokenTkl != null ? `${s.brokenTkl} broken` : null,
   ]
@@ -130,7 +134,7 @@ const receiving = (s: StatLine) => {
     s.tgt != null ? `${s.tgt} tgt` : null,
     s.rec != null ? `${n0(s.rec)} rec` : null,
     s.recYd != null ? `${n0(s.recYd)} yd` : null,
-    s.recTd != null ? `${n1(s.recTd)!.replace('.0', '')} TD` : null,
+    s.recTd != null ? `${trim(s.recTd)} TD` : null,
     ypr != null ? `${n1(ypr)} Y/R` : null,
     s.catchPct != null ? `${s.catchPct}% caught` : null,
   ]
@@ -155,11 +159,25 @@ function StatLines({ s, pos }: { s: StatLine; pos: Pos }) {
   return <div className="statlines">{LINE_ORDER[pos].map((k) => lines[k])}</div>
 }
 
+const weekList = (list: { w: number }[]) => list.map((d) => `W${d.w}`).join(', ')
+
+/** Plain English for what the adjusted line left out, so the reader can disagree with it. */
+function droppedSummary(adj: AdjustedLine) {
+  const partial = adj.dropped.filter((d) => d.r === 'partial')
+  const qb = adj.dropped.filter((d) => d.r === 'qb')
+  const bits: string[] = []
+  if (partial.length) bits.push(`${partial.length} he left early (${weekList(partial)})`)
+  if (qb.length) bits.push(`${qb.length} without his starting quarterback (${weekList(qb)})`)
+  return bits.join(', and ')
+}
+
 export function PlayerDetail({
   player, rank, posRank, tierName, tierColor, drafted, draftedBy, boardSize,
   onMoveToRank, onDraft, fallback,
 }: Props) {
   const [rankInput, setRankInput] = useState('')
+  const statMode = useStore((s) => s.statMode)
+  const setStatMode = useStore((s) => s.setStatMode)
 
   useEffect(() => setRankInput(rank ? String(rank) : ''), [rank, player?.id])
 
@@ -167,19 +185,28 @@ export function PlayerDetail({
 
   const delta = rank == null ? 0 : player.rank - rank
   const logo = teamLogo(player.team)
-  const { last, proj } = player
+  const { last, adj, proj } = player
+
+  // The adjusted view falls back to the raw line for anyone who had no distorted games.
+  const adjusted = statMode === 'adj'
+  const line = adjusted ? (adj ?? last) : last
+  const bench = DATA.usage?.byMode?.[statMode]?.[player.pos]
 
   // How the projection reads against what he actually did — the number a drafter is really weighing.
-  // Shares only mean something against the position, so the card carries the pool with it.
-  const bench = DATA.usage?.byPos?.[player.pos]
-
-  const ppgDelta = proj?.ppg != null && last?.ppg != null ? proj.ppg - last.ppg : null
+  const ppgDelta = proj?.ppg != null && line?.ppg != null ? proj.ppg - line.ppg : null
 
   const submitRank = () => {
     const n = Number(rankInput)
     if (Number.isFinite(n) && n >= 1 && n <= boardSize) onMoveToRank(Math.round(n))
     else setRankInput(rank ? String(rank) : '')
   }
+
+  const modeToggle = (
+    <span className="mode-toggle" role="group" aria-label="Stat basis">
+      <button className={adjusted ? '' : 'on'} onClick={() => setStatMode('raw')}>Raw</button>
+      <button className={adjusted ? 'on' : ''} onClick={() => setStatMode('adj')}>Adjusted</button>
+    </span>
+  )
 
   return (
     <aside className="detail" style={{ ['--pos-color' as string]: POS_COLOR[player.pos] }}>
@@ -245,81 +272,111 @@ export function PlayerDetail({
             <Stat label="Proj PPG" value={n1(proj.ppg)} />
             <Stat label="Games" value={n0(proj.gp)} />
           </div>
-          {ppgDelta != null && (
+          {ppgDelta != null && line && (
             <div className={`trend ${ppgDelta > 0 ? 'up' : ppgDelta < 0 ? 'down' : ''}`}>
-              {ppgDelta > 0 ? '▲' : ppgDelta < 0 ? '▼' : '■'} {Math.abs(ppgDelta).toFixed(1)} PPG vs {last!.season}
+              {ppgDelta > 0 ? '▲' : ppgDelta < 0 ? '▼' : '■'} {Math.abs(ppgDelta).toFixed(1)} PPG vs his{' '}
+              {adjusted ? 'adjusted' : String(line.season)} rate
             </div>
           )}
           <StatLines s={proj} pos={player.pos} />
         </Section>
       )}
 
-      {last ? (
+      {line ? (
         <>
-          <Section
-            title={`${last.season} season`}
-            note={
-              <>
-                {last.posRank != null && <span className="rank-chip">{player.pos}{last.posRank}</span>}
-                {last.ovrRank != null && <span className="dim"> #{last.ovrRank} ovr</span>}
-              </>
-            }
-          >
+          <Section title={adjusted ? `${line.season} adjusted` : `${line.season} season`} note={modeToggle}>
             <div className="stat-grid">
-              <Stat label="PPR pts" value={n1(last.ptsPpr)} />
-              <Stat label="PPR PPG" value={n1(last.ppg)} />
-              <Stat label="Games" value={last.gp != null ? `${last.gs ?? 0}/${last.gp}` : null} />
-              <Stat label="Half PPR" value={n1(last.ptsHalf)} />
-              <Stat label="Standard" value={n1(last.ptsStd)} />
-              <Stat label="Scrim yds" value={n0(last.scrimYd)} />
+              <Stat
+                label={adjusted ? 'PPG (clean)' : 'PPR PPG'}
+                value={n1(line.ppg)}
+                chip={line.ppgRank != null && bench
+                  ? <span className={`pctile-chip ${tone(line.ppgPctile)}`}>{ordinal(line.ppgRank)} of {bench.n}</span>
+                  : undefined}
+              />
+              <Stat label="Luck-adj PPG" value={n1(line.luckPpg)} />
+              <Stat
+                label="Games"
+                value={adjusted && adj ? `${line.gp}/${last!.gp}` : line.gp != null ? `${line.gs ?? line.gp}/${line.gp}` : null}
+              />
+              {/* Over a clean-game window a total reads like a season; a pace and a rate don't. */}
+              <Stat
+                label={adjusted ? '17-game pace' : 'PPR pts'}
+                value={adjusted ? n0(line.ppg != null ? line.ppg * 17 : null) : n1(line.ptsPpr)}
+              />
+              <Stat label="Finish" value={last?.posRank != null ? `${player.pos}${last.posRank}` : '—'} />
+              <Stat
+                label={adjusted ? 'Scrim y/g' : 'Scrim yds'}
+                value={adjusted ? n0(line.scrimYd != null && line.gp ? line.scrimYd / line.gp : null) : n0(line.scrimYd)}
+              />
             </div>
-            <StatLines s={last} pos={player.pos} />
+
+            {line.xTd != null && line.tdLuck != null && (
+              <div className={`trend ${line.tdLuck > 1 ? 'down' : line.tdLuck < -1 ? 'up' : ''}`}>
+                {trim(line.tds ?? 0)} TD vs {n1(line.xTd)} expected — {signed(line.tdLuck)} on opportunity
+              </div>
+            )}
+
+            <StatLines s={line} pos={player.pos} />
             <div className="statlines">
               <Line
                 label="Misc"
                 parts={[
-                  last.tds != null ? `${last.tds} TD${player.pos === 'QB' ? ' (rush/rec)' : ''}` : null,
-                  last.fd != null ? `${last.fd} 1st downs` : null,
-                  last.fum != null ? `${last.fum} fum` : null,
-                  last.drops != null ? `${last.drops} drops` : null,
+                  line.fd != null ? `${line.fd} 1st downs` : null,
+                  line.fum != null ? `${line.fum} fum` : null,
+                  line.drops != null ? `${line.drops} drops` : null,
                 ]}
               />
             </div>
+
+            {adjusted && adj ? (
+              <p className="usage-key">
+                Leaves out {adj.dropped.length} of {last!.gp} games: {droppedSummary(adj)}. Luck-adjusted PPG
+                re-prices touchdowns at the rate his red-zone work implies.
+              </p>
+            ) : adjusted ? (
+              <p className="usage-key">
+                Nothing to drop — every game was a full outing with his starting quarterback.
+              </p>
+            ) : adj && adj.ppg != null && last?.ppg != null && Math.abs(adj.ppg - last.ppg) >= 0.5 ? (
+              <button className="mode-hint" onClick={() => setStatMode('adj')}>
+                {n1(adj.ppg)} PPG across his {adj.gp} clean games — see adjusted
+              </button>
+            ) : null}
           </Section>
 
-          <Section title={`${last.season} usage`}>
+          <Section title={adjusted ? `${line.season} usage (clean games)` : `${line.season} usage`}>
             <div className="usage">
-              <Bar label="Snaps" pct={last.snapPct} rank={last.snapRank} pctile={last.snapPctile}
+              <Bar label="Snaps" pct={line.snapPct} rank={line.snapRank} pctile={line.snapPctile}
                 bench={bench?.snapPct} poolSize={bench?.n} />
-              <Bar label="Carries" pct={last.rushShare} rank={last.rushRank} pctile={last.rushPctile}
+              <Bar label="Carries" pct={line.rushShare} rank={line.rushRank} pctile={line.rushPctile}
                 bench={bench?.rushShare} poolSize={bench?.n} />
-              <Bar label="Targets" pct={last.tgtShare} rank={last.tgtRank} pctile={last.tgtPctile}
+              <Bar label="Targets" pct={line.tgtShare} rank={line.tgtRank} pctile={line.tgtPctile}
                 bench={bench?.tgtShare} poolSize={bench?.n} />
-              <Bar label="Red zone" pct={last.rzOpp} rank={last.rzRank} pctile={last.rzPctile}
+              <Bar label="Red zone" pct={line.rzOpp} rank={line.rzRank} pctile={line.rzPctile}
                 bench={bench?.rzOpp} poolSize={bench?.n} unit="count" />
             </div>
             <div className="statlines">
               <Line
                 label="RZ"
                 parts={[
-                  last.rzCarry != null ? `${last.rzCarry} car` : null,
-                  last.rzTgt != null ? `${last.rzTgt} tgt` : null,
+                  line.rzCarry != null ? `${line.rzCarry} car` : null,
+                  line.rzTgt != null ? `${line.rzTgt} tgt` : null,
                 ]}
               />
               <Line
                 label="Eff"
                 parts={[
-                  last.ypt != null ? `${last.ypt} Y/tgt` : null,
-                  last.airYd != null ? `${n0(last.airYd)} air yds` : null,
-                  last.gp && last.tgt ? `${n1(last.tgt / last.gp)} tgt/g` : null,
-                  last.gp && last.rushAtt ? `${n1(last.rushAtt / last.gp)} car/g` : null,
+                  line.ypt != null ? `${line.ypt} Y/tgt` : null,
+                  line.airYd != null ? `${n0(line.airYd)} air yds` : null,
+                  line.gp && line.tgt ? `${n1(line.tgt / line.gp)} tgt/g` : null,
+                  line.gp && line.rushAtt ? `${n1(line.rushAtt / line.gp)} car/g` : null,
                 ]}
               />
             </div>
             {bench && (
               <p className="usage-key">
-                Ranked among {bench.n} {player.pos}s with {DATA.usage.qualifier}. Each bar spans
-                zero to the position's leader; the tick marks its median.
+                Ranked among {bench.n} {player.pos}s with {DATA.usage.qualifier}. Each bar spans zero to
+                the position's leader; the tick marks its median.
               </p>
             )}
           </Section>
@@ -338,8 +395,10 @@ export function PlayerDetail({
           <Stat label="Age" value={player.age ?? '—'} />
           <Stat label="Exp" value={player.exp == null ? '—' : player.exp === 0 ? 'Rookie' : `${player.exp} yr`} />
           <Stat label="Depth" value={player.depthOrder != null ? `${player.pos}${player.depthOrder}` : '—'} />
-          <Stat label="College" value={player.college ?? '—'} />
+          <Stat label="Height" value={feet(player.height) ?? '—'} />
+          <Stat label="Weight" value={player.weight != null ? `${player.weight} lb` : '—'} />
           <Stat label="Bye" value={player.bye ?? '—'} />
+          <Stat label="College" value={player.college ?? '—'} />
           <Stat label="Number" value={player.number != null ? `#${player.number}` : '—'} />
         </div>
       </Section>

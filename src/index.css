@@ -589,6 +589,26 @@ select {
 }
 .usage-key { margin: 10px 0 0; font-size: 10px; line-height: 1.5; color: var(--dim); }
 
+.mode-toggle { display: inline-flex; gap: 2px; padding: 2px; background: var(--panel-3); border-radius: 7px; }
+.mode-toggle button {
+  border: 0; background: transparent; color: var(--dim); padding: 3px 8px; border-radius: 5px;
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.mode-toggle button:hover { color: var(--muted); }
+.mode-toggle button.on { background: var(--panel); color: var(--text); box-shadow: 0 1px 3px #0006; }
+
+/* Nudge toward the adjusted view when it would actually say something different. */
+.mode-hint {
+  display: block; width: 100%; margin-top: 10px; padding: 7px 9px; text-align: left;
+  background: var(--panel-2); border: 1px dashed var(--line); border-radius: 8px;
+  color: var(--muted); font-size: 10.5px; font-weight: 600;
+}
+.mode-hint:hover { border-color: var(--accent-dim); color: var(--text); }
+
+.stat { position: relative; }
+.stat .pctile-chip { display: inline-block; margin-top: 5px; }
+
+
 .detail-note { margin: 0; font-size: 11.5px; color: var(--dim); }
 
 .tally { display: grid; gap: 7px; }

@@ -33,7 +33,21 @@ Drafted players gray out on the big board, so the two views stay in sync. Everyt
 Two public sources, merged at build time into `src/data/players.json`:
 
 - **[FantasyFootballCalculator](https://fantasyfootballcalculator.com)** — live consensus ADP from real 10-team PPR mocks, plus half-PPR/standard ADP, draft ranges, and bye weeks.
-- **[Sleeper](https://docs.sleeper.com)** — player metadata (team, age, experience, college, injury status), last season's actual stats, this season's projections, and the headshots/team logos served from `sleepercdn.com`. Usage shares are computed at build time against each team's own season totals for targets and carries, using the team a player actually played for last year rather than his current one. The comparison pool is every player at the position who cleared 6 games and 20% of his team's snaps — 76 running backs, 158 receivers — so a share is ranked against real roles, not against backups who played two snaps.
+- **[Sleeper](https://docs.sleeper.com)** — player metadata (team, age, size, experience, college, injury status), **all 18 weekly stat logs** from last season, this season's projections, and the headshots/team logos served from `sleepercdn.com`. Season lines are rebuilt from the weekly rows rather than taken as totals, which is what makes the adjusted view below possible. Usage shares are computed against each team's own totals for targets and carries, over the same weeks the player is being measured on. The comparison pool is every player at the position who cleared 6 games and 20% of his team's snaps — 71 running backs, 159 receivers — so a share is ranked against real roles, not against backups who played two snaps.
+
+### Adjusted stats
+
+A season average answers "what did he score." It does not answer "what is he," and two things routinely wreck the difference. A game a player left after four snaps still counts as a game, so it drags his per-game average toward zero while telling you nothing about his role. And weeks his quarterback missed are a different offense than the one he'll play in next year.
+
+Both are visible in weekly logs, so the card carries a second line beside the raw one. Toggle **Raw / Adjusted** on any player:
+
+- **Partial games are dropped** — any week under half of a player's *own* median snap share. The rule is self-referencing on purpose: half of 90% catches a workhorse who left in the first quarter, half of 30% catches a committee back who did, and neither is penalized for the role he normally plays.
+- **Backup-quarterback weeks are dropped** — any week where the team's usual passer (by season attempts) took under half its dropbacks. Chase Brown's raw 16.6 PPG is 21.0 over the seven games Cincinnati's starter actually played; Ja'Marr Chase's 19.6 falls to 17.8.
+- **Touchdowns are re-priced.** Touchdowns are the noisiest thing on a stat sheet, so expected touchdowns are fit from red-zone and non-red-zone opportunity, constrained so the league's expected total equals its actual one — which makes luck zero-sum, one player's good fortune another's bad. **Luck-adjusted PPG** pays touchdowns at the rate the opportunity implies. Puka Nacua scored 11 on 6.8 expected; that +4.2 is the gap between his 23.4 PPG and a 21.9 that repeats.
+
+Every adjusted card names the games it left out and how many are left, because a seven-game sample is a real caveat and hiding it would be worse than not adjusting at all. Nothing is thrown away — the raw line is one click away, and players who had no distorted games say so.
+
+Overtime snaps can't be separated out: Sleeper publishes per-week totals, not play-by-play, so there is no way to tell which touches came after regulation. The partial-game and backup-quarterback filters cover the same intent — removing games played under conditions that won't repeat.
 
 The pool is **only players with a real consensus ADP** — around 210 for a 10-team PPR league. Kickers and team defenses are filtered out at the source, and players with no ADP row are not carried at all, so there is nothing in the board you can't meaningfully rank.
 

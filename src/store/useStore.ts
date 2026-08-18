@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import raw from '../data/players.json'
-import type { BoardItem, Pick, Player, PlayerData, Pos } from '../types'
+import type { BoardItem, Pick, Player, PlayerData, Pos, StatMode } from '../types'
 import { TIER_COLORS } from '../lib/format'
 import { cpuPick, roundForPick, slotForPick } from '../lib/draft'
 
@@ -24,6 +24,8 @@ interface State {
   boardMode: BoardMode
   cardSize: CardSize
   showPickLines: boolean
+  /** Whether player cards read last season raw or with distorted games dropped. */
+  statMode: StatMode
   items: BoardItem[]
   selectedId: string | null
   posFilter: Pos | 'ALL'
@@ -41,6 +43,7 @@ interface State {
   setBoardMode: (m: BoardMode) => void
   setCardSize: (s: CardSize) => void
   setShowPickLines: (v: boolean) => void
+  setStatMode: (m: StatMode) => void
   setPosFilter: (p: Pos | 'ALL') => void
   setQuery: (q: string) => void
   setHideDrafted: (v: boolean) => void
@@ -75,6 +78,7 @@ export const useStore = create<State>()(
       boardMode: 'overall',
       cardSize: 'md',
       showPickLines: true,
+      statMode: 'raw',
       items: defaultItems(),
       selectedId: null,
       posFilter: 'ALL',
@@ -92,6 +96,7 @@ export const useStore = create<State>()(
       setBoardMode: (boardMode) => set({ boardMode }),
       setCardSize: (cardSize) => set({ cardSize }),
       setShowPickLines: (showPickLines) => set({ showPickLines }),
+      setStatMode: (statMode) => set({ statMode }),
       setPosFilter: (posFilter) => set({ posFilter }),
       setQuery: (query) => set({ query }),
       setHideDrafted: (hideDrafted) => set({ hideDrafted }),
@@ -285,6 +290,7 @@ export const useStore = create<State>()(
         boardMode: s.boardMode,
         cardSize: s.cardSize,
         showPickLines: s.showPickLines,
+        statMode: s.statMode,
         hideDrafted: s.hideDrafted,
       }),
       merge: (persisted, current) => {
