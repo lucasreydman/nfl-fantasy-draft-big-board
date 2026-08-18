@@ -8,11 +8,10 @@ import {
   useSensors,
   type DragEndEvent,
 } from '@dnd-kit/core'
-import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import {
   SortableContext,
+  rectSortingStrategy,
   sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import type { BoardItem, Pos } from '../types'
 import { POSITIONS, POS_COLOR, TIER_COLORS } from '../lib/format'
@@ -23,8 +22,8 @@ import { PlayerDetail } from './PlayerDetail'
 
 export function BigBoard() {
   const {
-    items, boardMode, posFilter, query, hideDrafted, selectedId, picks, teams, mySlot,
-    setBoardMode, setPosFilter, setQuery, setHideDrafted, select, reorder, movePlayerBy,
+    items, boardMode, cardSize, posFilter, query, hideDrafted, selectedId, picks, teams, mySlot,
+    setBoardMode, setCardSize, setPosFilter, setQuery, setHideDrafted, select, reorder, movePlayerBy,
     movePlayerToRank, addTier, updateTier, removeTier, autoTier, clearTiers, resetBoard,
     importBoard, draftPlayer,
   } = useStore()
@@ -126,7 +125,7 @@ export function BigBoard() {
     () =>
       ranked
         .filter((r) => !r.player.estimated)
-        .map((r) => ({ ...r, delta: Math.round(r.player.adp - r.rank) }))
+        .map((r) => ({ ...r, delta: r.player.rank - r.rank }))
         .filter((r) => Math.abs(r.delta) >= 5)
         .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
         .slice(0, 8),
@@ -180,6 +179,16 @@ export function BigBoard() {
             />
             Hide drafted
           </label>
+
+          {boardMode === 'overall' && (
+            <div className="segmented size-picker" title="Card size">
+              {(['sm', 'md', 'lg'] as const).map((s) => (
+                <button key={s} className={cardSize === s ? 'on' : ''} onClick={() => setCardSize(s)}>
+                  {s === 'sm' ? 'S' : s === 'md' ? 'M' : 'L'}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="toolbar toolbar-sub">
@@ -232,14 +241,9 @@ export function BigBoard() {
             onReorder={reorder}
           />
         ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={onDragEnd}
-            modifiers={[restrictToVerticalAxis]}
-          >
-            <SortableContext items={visible.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-              <div className="list">
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <SortableContext items={visible.map((i) => i.id)} strategy={rectSortingStrategy}>
+              <div className={`list size-${cardSize}`}>
                 {visible.map((item) =>
                   item.kind === 'tier' ? (
                     <TierRow
@@ -271,6 +275,7 @@ export function BigBoard() {
                           onSelect={() => select(p.id)}
                           onBump={(d) => movePlayerBy(p.id, d)}
                           onDraft={picks.length ? () => draftPlayer(p.id) : undefined}
+                          avatarSize={cardSize === 'sm' ? 40 : cardSize === 'lg' ? 68 : 52}
                         />
                       )
                     })()

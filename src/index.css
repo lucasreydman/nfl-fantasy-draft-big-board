@@ -208,9 +208,9 @@ select {
 
 .pos-chip {
   display: inline-block;
-  padding: 1px 5px;
-  border-radius: 4px;
-  font-size: 10.5px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-size: 11.5px;
   font-weight: 800;
   letter-spacing: 0.03em;
   color: var(--pos-color);
@@ -240,33 +240,71 @@ select {
 
 .board-main { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 
-.list { overflow-y: auto; flex: 1; padding: 6px 8px 60px; }
+.list {
+  overflow-y: auto;
+  flex: 1;
+  padding: 10px 12px 60px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-min, 420px), 1fr));
+  gap: 8px;
+  align-content: start;
+}
 
 .row {
   display: grid;
-  grid-template-columns: 18px 30px auto minmax(0, 1fr) 52px 44px auto;
+  grid-template-columns: 16px 34px auto minmax(0, 1fr) auto auto auto;
   align-items: center;
-  gap: 10px;
-  padding: 5px 10px 5px 4px;
-  border-radius: 9px;
-  border: 1px solid transparent;
+  gap: 12px;
+  padding: 12px 14px 12px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--line-soft);
   position: relative;
   background: var(--panel);
-  margin-bottom: 3px;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
+  min-height: 76px;
+  transition: background 0.12s, border-color 0.12s, transform 0.12s;
 }
+/* No overflow:hidden here — on a grid item it collapses the automatic minimum
+   size to zero and the card flattens. The pseudo-elements clip themselves. */
 .row::before {
   content: '';
-  position: absolute; left: 0; top: 6px; bottom: 6px;
-  width: 3px; border-radius: 3px;
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 4px;
+  border-radius: 12px 0 0 12px;
   background: var(--tier-color);
 }
-.row:hover { background: var(--panel-2); }
+/* Faint positional wash so a card reads as its position at a glance. */
+.row::after {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--pos-color) 9%, transparent), transparent 42%);
+  pointer-events: none;
+}
+.row > * { position: relative; z-index: 1; }
+.row:hover { background: var(--panel-2); border-color: var(--line); }
 .row-selected { border-color: color-mix(in srgb, var(--pos-color) 60%, transparent); background: var(--panel-2); }
 .row-dragging { opacity: 0.9; z-index: 5; box-shadow: 0 14px 28px -12px #000c, 0 0 0 1px var(--line); }
 .row-drafted { opacity: 0.38; }
 .row-drafted .row-name { text-decoration: line-through; text-decoration-color: #ffffff40; }
+
+.list.size-sm { --card-min: 330px; }
+.list.size-md { --card-min: 430px; }
+.list.size-lg { --card-min: 620px; }
+
+.size-sm .row { padding: 8px 12px 8px 8px; gap: 10px; min-height: 58px; }
+.size-sm .row-name { font-size: 14px; }
+.size-sm .row-rank { font-size: 14px; }
+.size-sm .row-sub { font-size: 11.5px; margin-top: 2px; }
+
+.size-lg .row { padding: 16px 18px 16px 10px; gap: 16px; min-height: 100px; }
+.size-lg .row-name { font-size: 19px; }
+.size-lg .row-rank { font-size: 21px; }
+.size-lg .row-sub { font-size: 13.5px; gap: 10px; }
+.size-lg .row-adp-value { font-size: 16px; }
+.size-lg .pos-chip { font-size: 12.5px; padding: 3px 8px; }
+
+.size-picker button { padding: 5px 11px; font-weight: 700; }
 
 .grip {
   border: 0; background: transparent; color: #3c4457;
@@ -277,29 +315,38 @@ select {
 .grip:hover { color: var(--muted); }
 .grip svg { fill: currentColor; }
 
-.row-rank { font-size: 12.5px; font-weight: 700; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.row-rank {
+  font-size: 17px; font-weight: 800; color: var(--muted);
+  text-align: right; font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+}
 .row-main { min-width: 0; }
-.row-name { font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.row-sub { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.row-name {
+  font-weight: 650; font-size: 16px; letter-spacing: -0.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.row-sub { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--muted); margin-top: 4px; }
 
-.row-adp { text-align: right; }
-.row-adp-value { font-size: 12.5px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
-.row-adp-label { font-size: 9px; color: var(--dim); letter-spacing: 0.08em; }
+.row-adp { text-align: right; min-width: 44px; }
+.row-adp-value { font-size: 14.5px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.row-adp-label { font-size: 9px; color: var(--dim); letter-spacing: 0.08em; margin-top: 1px; }
 
-.row-delta { text-align: right; font-size: 12px; font-weight: 700; color: var(--dim); font-variant-numeric: tabular-nums; }
+.row-delta {
+  text-align: right; min-width: 38px;
+  font-size: 13.5px; font-weight: 700; color: var(--dim); font-variant-numeric: tabular-nums;
+}
 .row-delta.up { color: var(--accent); }
 .row-delta.down { color: #ff8b6b; }
 
-.row-actions { display: flex; align-items: center; gap: 3px; opacity: 0; transition: opacity 0.12s; }
+.row-actions { display: flex; align-items: center; gap: 4px; opacity: 0; transition: opacity 0.12s; }
 .row:hover .row-actions, .row-selected .row-actions { opacity: 1; }
 .row-actions button {
   border: 1px solid var(--line); background: var(--panel-2); color: var(--muted);
-  width: 22px; height: 22px; border-radius: 6px; font-size: 8px; line-height: 1;
+  width: 26px; height: 26px; border-radius: 7px; font-size: 9px; line-height: 1;
   display: grid; place-items: center;
 }
 .row-actions button:hover { color: var(--text); background: var(--panel-3); }
 .row-actions .draft-btn {
-  width: auto; height: 22px; padding: 0 9px; font-size: 11px; font-weight: 700;
+  width: auto; height: 26px; padding: 0 11px; font-size: 12px; font-weight: 700;
   color: var(--accent); border-color: #1e4d36;
 }
 .row-actions .draft-btn:disabled { opacity: 0.35; }
@@ -307,20 +354,21 @@ select {
 /* tiers */
 
 .tier {
+  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 18px 10px minmax(80px, 220px) auto 1fr auto;
+  grid-template-columns: 18px 10px minmax(80px, 240px) auto 1fr auto;
   align-items: center;
   gap: 10px;
-  margin: 14px 0 5px;
-  padding: 5px 10px 5px 4px;
+  margin: 12px 0 2px;
+  padding: 8px 12px 8px 6px;
   border-radius: 8px;
   background: linear-gradient(90deg, color-mix(in srgb, var(--tier-color) 18%, var(--panel)) 0%, var(--panel) 65%);
   border: 1px solid color-mix(in srgb, var(--tier-color) 30%, transparent);
 }
-.tier-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--tier-color); }
+.tier-dot { width: 11px; height: 11px; border-radius: 50%; background: var(--tier-color); }
 .tier-name {
   background: transparent; border: 1px solid transparent; border-radius: 6px;
-  padding: 3px 6px; font-weight: 700; font-size: 13px; outline: none; width: 100%;
+  padding: 3px 6px; font-weight: 700; font-size: 14.5px; outline: none; width: 100%;
 }
 .tier-name:hover { border-color: var(--line); }
 .tier-name:focus { border-color: var(--tier-color); background: #0006; }

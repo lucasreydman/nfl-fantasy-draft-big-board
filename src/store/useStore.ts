@@ -17,10 +17,12 @@ const newTierId = () => `tier-${Date.now().toString(36)}-${tierSeq++}`
 
 export type View = 'board' | 'draft'
 export type BoardMode = 'overall' | 'positional'
+export type CardSize = 'sm' | 'md' | 'lg'
 
 interface State {
   view: View
   boardMode: BoardMode
+  cardSize: CardSize
   items: BoardItem[]
   selectedId: string | null
   posFilter: Pos | 'ALL'
@@ -36,6 +38,7 @@ interface State {
 
   setView: (v: View) => void
   setBoardMode: (m: BoardMode) => void
+  setCardSize: (s: CardSize) => void
   setPosFilter: (p: Pos | 'ALL') => void
   setQuery: (q: string) => void
   setHideDrafted: (v: boolean) => void
@@ -68,6 +71,7 @@ export const useStore = create<State>()(
     (set, get) => ({
       view: 'board',
       boardMode: 'overall',
+      cardSize: 'md',
       items: defaultItems(),
       selectedId: null,
       posFilter: 'ALL',
@@ -83,6 +87,7 @@ export const useStore = create<State>()(
 
       setView: (view) => set({ view }),
       setBoardMode: (boardMode) => set({ boardMode }),
+      setCardSize: (cardSize) => set({ cardSize }),
       setPosFilter: (posFilter) => set({ posFilter }),
       setQuery: (query) => set({ query }),
       setHideDrafted: (hideDrafted) => set({ hideDrafted }),
@@ -254,7 +259,6 @@ export const useStore = create<State>()(
           available,
           roster,
           round: roundForPick(overall, s.teams),
-          rounds: s.rounds,
           rand: Math.random,
         })
         if (choice) get().draftPlayer(choice.id, true)
@@ -275,6 +279,7 @@ export const useStore = create<State>()(
         autoPick: s.autoPick,
         speed: s.speed,
         boardMode: s.boardMode,
+        cardSize: s.cardSize,
         hideDrafted: s.hideDrafted,
       }),
       merge: (persisted, current) => {

@@ -63,7 +63,7 @@ const sleeperList = Object.values(sleeper)
 const byNamePos = new Map()
 const byName = new Map()
 for (const p of sleeperList) {
-  if (!p.full_name && p.position !== 'DEF') continue
+  if (!p.full_name) continue
   const n = key(p.full_name ?? `${p.first_name} ${p.last_name}`)
   const rank = (p.active ? 0 : 1000) + (p.team ? 0 : 100)
   const push = (map, k) => {
@@ -74,24 +74,20 @@ for (const p of sleeperList) {
   push(byName, n)
 }
 
-const DST_NAMES = {}
-for (const p of sleeperList) {
-  if (p.position === 'DEF' && p.team) DST_NAMES[team(p.team)] = `${p.first_name} ${p.last_name}`
-}
-
-const POS_ORDER = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']
+// Kickers and team defenses are deliberately excluded: this board is skill players only.
+const POS_ORDER = ['QB', 'RB', 'WR', 'TE']
 const missed = []
 const players = []
 const seen = new Set()
 
 for (const row of adp.ppr.players) {
-  const pos = row.position === 'PK' ? 'K' : row.position === 'DST' ? 'DEF' : row.position
+  const pos = row.position
   if (!POS_ORDER.includes(pos)) continue
   const tm = team(row.team)
-  let s = pos === 'DEF' ? null : (byNamePos.get(`${key(row.name)}|${pos}`) ?? byName.get(key(row.name)))
-  if (pos !== 'DEF' && !s) missed.push(`${row.name} (${pos} ${tm})`)
+  const s = byNamePos.get(`${key(row.name)}|${pos}`) ?? byName.get(key(row.name))
+  if (!s) missed.push(`${row.name} (${pos} ${tm})`)
 
-  const id = pos === 'DEF' ? `DEF-${tm}` : (s?.player_id ?? `ffc-${row.player_id}`)
+  const id = s?.player_id ?? `ffc-${row.player_id}`
   if (seen.has(id)) continue
   seen.add(id)
 
@@ -100,10 +96,10 @@ for (const row of adp.ppr.players) {
 
   players.push({
     id,
-    sleeperId: pos === 'DEF' ? null : s?.player_id ?? null,
-    name: pos === 'DEF' ? (DST_NAMES[tm] ?? row.name) : (s?.full_name ?? row.name),
-    firstName: pos === 'DEF' ? null : s?.first_name ?? row.name.split(' ')[0],
-    lastName: pos === 'DEF' ? null : s?.last_name ?? row.name.split(' ').slice(1).join(' '),
+    sleeperId: s?.player_id ?? null,
+    name: s?.full_name ?? row.name,
+    firstName: s?.first_name ?? row.name.split(' ')[0],
+    lastName: s?.last_name ?? row.name.split(' ').slice(1).join(' '),
     pos,
     team: tm,
     bye: row.bye || null,
@@ -141,17 +137,7 @@ const extras = sleeperList
     estimated: true,
   }))
 
-// Every DST, so kicker/defense rounds are draftable even outside ADP coverage.
-const dstExtras = Object.entries(DST_NAMES)
-  .filter(([tm]) => !seen.has(`DEF-${tm}`))
-  .map(([tm, name], i) => ({
-    id: `DEF-${tm}`, sleeperId: null, name, firstName: null, lastName: null, pos: 'DEF',
-    team: tm, bye: null, adp: 520 + i, adpHalf: null, adpStd: null, stdev: null, high: null,
-    low: null, timesDrafted: null, age: null, exp: null, number: null, college: null,
-    depthOrder: null, injury: null, estimated: true,
-  }))
-
-const all = [...players, ...extras, ...dstExtras]
+const all = [...players, ...extras]
 all.forEach((p, i) => { p.rank = i + 1 })
 
 const byPos = {}

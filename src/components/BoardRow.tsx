@@ -24,18 +24,19 @@ interface RowProps {
   onSelect: () => void
   onBump: (delta: number) => void
   onDraft?: () => void
-  compact?: boolean
+  avatarSize?: number
 }
 
 export const PlayerRow = memo(function PlayerRow({
-  player, rank, posRank, tierColor, drafted, draftedBy, selected, onSelect, onBump, onDraft, compact,
+  player, rank, posRank, tierColor, drafted, draftedBy, selected, onSelect, onBump, onDraft,
+  avatarSize = 52,
 }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: player.id,
   })
 
-  // Positive = you rank them higher than the market. Meaningless without a real ADP.
-  const delta = player.estimated ? null : Math.round(player.adp - rank)
+  // Positive = you rank them higher than consensus. Meaningless without a real ADP.
+  const delta = player.estimated ? null : player.rank - rank
 
   return (
     <div
@@ -48,7 +49,6 @@ export const PlayerRow = memo(function PlayerRow({
       }}
       className={[
         'row',
-        compact && 'row-compact',
         drafted && 'row-drafted',
         selected && 'row-selected',
         isDragging && 'row-dragging',
@@ -60,7 +60,7 @@ export const PlayerRow = memo(function PlayerRow({
       </button>
 
       <div className="row-rank">{rank}</div>
-      <Avatar player={player} size={compact ? 30 : 38} />
+      <Avatar player={player} size={avatarSize} />
 
       <div className="row-main">
         <div className="row-name">
@@ -75,12 +75,10 @@ export const PlayerRow = memo(function PlayerRow({
         </div>
       </div>
 
-      {!compact && (
-        <div className="row-adp">
-          <div className="row-adp-value">{player.estimated ? '—' : fmtAdp(player.adp)}</div>
-          <div className="row-adp-label">ADP</div>
-        </div>
-      )}
+      <div className="row-adp">
+        <div className="row-adp-value">{player.estimated ? '—' : fmtAdp(player.adp)}</div>
+        <div className="row-adp-label">ADP</div>
+      </div>
 
       <div className={`row-delta ${!delta ? '' : delta > 0 ? 'up' : 'down'}`}>
         {delta ? `${delta > 0 ? '+' : ''}${delta}` : '—'}

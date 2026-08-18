@@ -1,14 +1,12 @@
 import type { Pos } from '../types'
 
-export const POSITIONS: Pos[] = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']
+export const POSITIONS: Pos[] = ['QB', 'RB', 'WR', 'TE']
 
 export const POS_COLOR: Record<Pos, string> = {
   QB: '#ff2a6d',
   RB: '#00ceb8',
   WR: '#58a7ff',
   TE: '#ffae58',
-  K: '#bd66ff',
-  DEF: '#8e9ab5',
 }
 
 export const TIER_COLORS = [

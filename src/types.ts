@@ -1,4 +1,4 @@
-export type Pos = 'QB' | 'RB' | 'WR' | 'TE' | 'K' | 'DEF'
+export type Pos = 'QB' | 'RB' | 'WR' | 'TE'
 
 export interface Player {
   id: string
