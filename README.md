@@ -1,0 +1,54 @@
+# Big Board
+
+A custom fantasy football big board and 10-team snake mock draft, in one app. Build your rankings by hand, cut them into tiers, then draft against them.
+
+![views](https://img.shields.io/badge/views-big%20board%20%2B%20mock%20draft-2fe08b)
+
+## What it does
+
+**Big Board** — drag players into your own order, drop in tiers, rename and recolor them.
+
+- **Overall** mode: one ranked list with tier dividers you can drag anywhere.
+- **Positional** mode: a sortable column per position (QB/RB/WR/TE/K/DEF). Positional ranks (`RB1`, `WR12`) fall out of your overall order automatically, and tier colors carry across as a stripe on each row.
+- **Auto-tier** cuts tiers where the ADP gap to the next player is unusually large *for that part of the board* — the threshold is a multiple of the local median gap, so it doesn't produce 14-player blocks at the top and one-man tiers at the bottom. The slider trades broad tiers for fine ones.
+- Every row shows how far you've moved a player off consensus (`+12` = you're twelve picks higher than ADP), and the side panel ranks your biggest swings.
+- Set a player's rank directly, nudge with the arrows, or drag. Export/import the board as JSON.
+
+**Mock Draft** — 10-team snake (8/12/14 also available, 10–18 rounds).
+
+- Full snake grid with the live pick highlighted and your column called out.
+- **Best available is your big board**, not ADP — that's the point of building one.
+- CPU teams pick on ADP with roster-need weighting and a little noise, so no two mocks are identical. They won't reach for a kicker in round 3.
+- Sim to your pick, undo, auto-pick toggle, adjustable speed.
+- Live roster with starters filled into lineup slots (QB/RB/RB/WR/WR/TE/FLEX/K/DEF) and the rest on the bench.
+
+Drafted players gray out on the big board, so the two views stay in sync. Everything persists to `localStorage`.
+
+## Data
+
+Two public sources, merged at build time into `src/data/players.json`:
+
+- **[FantasyFootballCalculator](https://fantasyfootballcalculator.com)** — live consensus ADP from real 10-team PPR mocks, plus half-PPR/standard ADP, draft ranges, and bye weeks.
+- **[Sleeper](https://docs.sleeper.com)** — player metadata (team, age, experience, college, injury status) and the headshots/team logos served from `sleepercdn.com`.
+
+Players outside ADP coverage are backfilled from Sleeper popularity and flagged `estimated`, so they're draftable but never counted in ADP comparisons.
+
+Refresh the data any time:
+
+```bash
+npm run fetch:players          # current season
+SEASON=2027 npm run fetch:players
+```
+
+The script falls back to the previous season automatically if the current one has too few drafts logged (early offseason).
+
+## Running it
+
+```bash
+npm install
+npm run dev
+```
+
+## Stack
+
+Vite · React · TypeScript · zustand (with `persist`) · dnd-kit. No backend — the player file ships with the bundle.
