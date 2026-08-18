@@ -206,7 +206,7 @@ export function DraftView() {
                 <span><span className="pos-chip">{player.pos}{posRank.get(player.id)}</span></span>
                 <span className="avail-team">{player.team ?? 'FA'}</span>
                 <span className="avail-num dim">{player.bye ?? '—'}</span>
-                <span className="avail-num">{player.estimated ? '—' : fmtAdp(player.adp)}</span>
+                <span className="avail-num">{fmtAdp(player.adp)}</span>
                 <button
                   className="btn primary sm"
                   disabled={done}

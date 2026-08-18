@@ -33,7 +33,9 @@ Two public sources, merged at build time into `src/data/players.json`:
 - **[FantasyFootballCalculator](https://fantasyfootballcalculator.com)** — live consensus ADP from real 10-team PPR mocks, plus half-PPR/standard ADP, draft ranges, and bye weeks.
 - **[Sleeper](https://docs.sleeper.com)** — player metadata (team, age, experience, college, injury status) and the headshots/team logos served from `sleepercdn.com`.
 
-Kickers and defenses are filtered out at the source. Players outside ADP coverage are backfilled from Sleeper popularity and flagged `estimated`, so they're draftable but never counted in ADP comparisons.
+The pool is **only players with a real consensus ADP** — around 210 for a 10-team PPR league. Kickers and team defenses are filtered out at the source, and players with no ADP row are not carried at all, so there is nothing in the board you can't meaningfully rank.
+
+When the player file changes, a saved board reconciles itself on load: entries for players that no longer exist are dropped, newcomers are appended in ADP order, and a saved mock that references any departed player is discarded outright rather than left with ghost picks.
 
 Refresh the data any time:
 

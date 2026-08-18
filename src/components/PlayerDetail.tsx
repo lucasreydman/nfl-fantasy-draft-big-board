@@ -36,7 +36,7 @@ export function PlayerDetail({
 
   if (!player) return <aside className="detail detail-empty">{fallback}</aside>
 
-  const delta = rank == null || player.estimated ? 0 : player.rank - rank
+  const delta = rank == null ? 0 : player.rank - rank
   const logo = teamLogo(player.team)
 
   const submitRank = () => {
@@ -80,14 +80,14 @@ export function PlayerDetail({
             onKeyDown={(e) => e.key === 'Enter' && submitRank()}
           />
           <span className={`delta-pill ${delta > 0 ? 'up' : delta < 0 ? 'down' : ''}`}>
-            {player.estimated ? 'no ADP' : delta === 0 ? 'on consensus' : `${delta > 0 ? '+' : ''}${delta} vs consensus`}
+            {delta === 0 ? 'on consensus' : `${delta > 0 ? '+' : ''}${delta} vs consensus`}
           </span>
         </div>
       </div>
 
       <div className="stat-grid">
-        <Stat label="ADP (PPR)" value={player.estimated ? '—' : fmtAdp(player.adp)} />
-        <Stat label="Consensus" value={player.estimated ? '—' : `#${player.rank}`} />
+        <Stat label="ADP (PPR)" value={fmtAdp(player.adp)} />
+        <Stat label="Consensus" value={`#${player.rank}`} />
         <Stat label="Half PPR" value={fmtAdp(player.adpHalf)} />
         <Stat label="Standard" value={fmtAdp(player.adpStd)} />
         <Stat label="Range" value={player.high ? `${player.high}–${player.low}` : '—'} />

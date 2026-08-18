@@ -116,28 +116,12 @@ for (const row of adp.ppr.players) {
     college: s?.college ?? null,
     depthOrder: s?.depth_chart_order ?? null,
     injury: s?.injury_status ?? null,
-    estimated: false,
   })
 }
 
 players.sort((a, b) => a.adp - b.adp)
 
-// Backfill notable Sleeper players who have no ADP row yet (deep bench / rookies).
-const extras = sleeperList
-  .filter((p) => p.active && p.team && POS_ORDER.includes(p.position) && p.search_rank && p.search_rank < 400)
-  .filter((p) => !seen.has(p.player_id))
-  .sort((a, b) => a.search_rank - b.search_rank)
-  .slice(0, 120)
-  .map((p, i) => ({
-    id: p.player_id, sleeperId: p.player_id, name: p.full_name,
-    firstName: p.first_name, lastName: p.last_name, pos: p.position, team: team(p.team),
-    bye: null, adp: 400 + i, adpHalf: null, adpStd: null, stdev: null, high: null, low: null,
-    timesDrafted: null, age: p.age ?? null, exp: p.years_exp ?? null, number: p.number ?? null,
-    college: p.college ?? null, depthOrder: p.depth_chart_order ?? null, injury: p.injury_status ?? null,
-    estimated: true,
-  }))
-
-const all = [...players, ...extras]
+const all = players
 all.forEach((p, i) => { p.rank = i + 1 })
 
 const byPos = {}

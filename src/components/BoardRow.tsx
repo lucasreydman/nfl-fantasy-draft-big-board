@@ -54,8 +54,8 @@ export const PlayerRow = memo(function PlayerRow({
     id: player.id,
   })
 
-  // Positive = you rank them higher than consensus. Meaningless without a real ADP.
-  const delta = player.estimated ? null : player.rank - rank
+  // Positive = you rank them higher than consensus.
+  const delta = player.rank - rank
 
   return (
     <div
@@ -92,8 +92,8 @@ export const PlayerRow = memo(function PlayerRow({
       <div><span className="pos-chip">{player.pos}{posRank}</span></div>
       <div className="row-team">{player.team ?? 'FA'}</div>
       <div className="row-num dim">{player.bye ?? '\u2014'}</div>
-      <div className="row-num">{player.estimated ? '\u2014' : fmtAdp(player.adp)}</div>
-      <div className="row-num dim">{player.estimated ? '\u2014' : `#${player.rank}`}</div>
+      <div className="row-num">{fmtAdp(player.adp)}</div>
+      <div className="row-num dim">#{player.rank}</div>
       <div className={`row-num row-delta ${!delta ? '' : delta > 0 ? 'up' : 'down'}`}>
         {delta ? `${delta > 0 ? '+' : ''}${delta}` : '\u2014'}
       </div>

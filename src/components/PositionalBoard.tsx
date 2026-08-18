@@ -72,7 +72,7 @@ function PosRow({
       <Avatar player={player} size={26} />
       <span className="prow-name">{player.name}</span>
       <span className="prow-team">{player.team ?? 'FA'}</span>
-      <span className="prow-adp">{player.estimated ? '—' : fmtAdp(player.adp)}</span>
+      <span className="prow-adp">{fmtAdp(player.adp)}</span>
     </div>
   )
 }

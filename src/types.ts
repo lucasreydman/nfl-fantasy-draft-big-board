@@ -22,8 +22,7 @@ export interface Player {
   college: string | null
   depthOrder: number | null
   injury: string | null
-  /** True when the player has no consensus ADP and we ordered them by Sleeper popularity. */
-  estimated: boolean
+  /** Position in the consensus ADP order. */
   rank: number
 }
 

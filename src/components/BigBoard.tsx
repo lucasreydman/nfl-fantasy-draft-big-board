@@ -125,7 +125,6 @@ export function BigBoard() {
   const deviations = useMemo(
     () =>
       ranked
-        .filter((r) => !r.player.estimated)
         .map((r) => ({ ...r, delta: r.player.rank - r.rank }))
         .filter((r) => Math.abs(r.delta) >= 5)
         .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))

@@ -284,11 +284,12 @@ export const useStore = create<State>()(
       }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<State>
+        const known = new Set(PLAYERS.map((x) => x.id))
+
         // Reconcile a saved board against the current player pool: drop players
         // that vanished, append newcomers so a data refresh never loses work.
         let items = p.items
         if (items?.length) {
-          const known = new Set(PLAYERS.map((x) => x.id))
           const kept = items.filter((i) => i.kind === 'tier' || known.has(i.id))
           const present = new Set(kept.filter((i) => i.kind === 'player').map((i) => i.id))
           const missing = PLAYERS.filter((x) => !present.has(x.id)).sort((a, b) => a.adp - b.adp)
@@ -296,7 +297,14 @@ export const useStore = create<State>()(
         } else {
           items = current.items
         }
-        return { ...current, ...p, items }
+
+        // A saved mock that references players no longer in the pool is stale.
+        // Keeping it would leave ghost picks on the board and in rosters, so the
+        // whole draft goes rather than half of it.
+        const picks =
+          p.picks?.length && p.picks.some((pick) => !known.has(pick.playerId)) ? [] : p.picks
+
+        return { ...current, ...p, items, picks: picks ?? current.picks }
       },
     },
   ),
