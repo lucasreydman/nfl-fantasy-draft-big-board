@@ -627,6 +627,96 @@ select {
 .dev-rank { color: var(--dim); font-size: 11px; font-variant-numeric: tabular-nums; }
 .dev-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* ---------- luck table ---------- */
+
+.stats-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /* One template for the header and every row, so columns can never drift apart. */
+  --stat-cols: minmax(150px, 1fr) 38px 48px 50px 54px 62px 56px 64px 58px 58px 64px 58px;
+  --stat-gap: 9px;
+}
+
+.stats-head, .srow {
+  display: grid;
+  grid-template-columns: var(--stat-cols);
+  gap: var(--stat-gap);
+  align-items: center;
+  padding: 0 16px;
+}
+
+.stats-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding-top: 10px;
+  padding-bottom: 8px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+.stats-head .sh-player {
+  font-size: 9.5px; font-weight: 700; color: var(--dim);
+  text-transform: uppercase; letter-spacing: 0.07em;
+}
+.stats-head button {
+  border: 0; background: transparent; padding: 4px 0;
+  font-size: 9.5px; font-weight: 700; color: var(--dim);
+  text-transform: uppercase; letter-spacing: 0.05em; text-align: right;
+  white-space: nowrap;
+}
+.stats-head button:hover { color: var(--text); }
+.stats-head button.on { color: var(--accent); }
+.sh-caret { margin-left: 3px; }
+
+.stats-body { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 8px; }
+
+.srow {
+  height: 42px;
+  border-bottom: 1px solid var(--line-soft);
+  cursor: pointer;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.srow:hover { background: var(--panel-2); }
+.srow-selected { background: color-mix(in srgb, var(--pos-color) 12%, var(--panel-2)); }
+.srow-drafted { opacity: 0.4; }
+.srow-drafted .srow-name { text-decoration: line-through; text-decoration-color: #ffffff40; }
+
+.srow-player { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.srow-id { min-width: 0; }
+.srow-name {
+  display: block; font-weight: 600; font-size: 13px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.srow-sub { display: flex; align-items: center; gap: 6px; margin-top: 1px; font-size: 10.5px; color: var(--dim); }
+.srow-sub .pos-chip { font-size: 9.5px; padding: 1px 4px; }
+
+/* Marks a player whose adjusted line is built on fewer games than he played. */
+.drop-chip {
+  font-size: 9.5px; font-weight: 700; color: #ffcf70;
+  background: #ffcf7016; padding: 1px 4px; border-radius: 4px;
+}
+
+.srow .sh-num { text-align: right; }
+.srow .sh-num.strong { font-weight: 700; }
+.srow .sh-num.dim { color: var(--dim); }
+.srow .spread { color: var(--dim); font-weight: 700; }
+.srow .spread.up { color: var(--accent); }
+.srow .spread.down { color: #ff8b6b; }
+
+.stats-key {
+  margin: 0;
+  padding: 9px 16px 11px;
+  border-top: 1px solid var(--line-soft);
+  background: var(--panel);
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--dim);
+}
+.stats-key b { color: var(--muted); font-weight: 700; }
+
 /* ---------- draft ---------- */
 
 .draft-layout {

@@ -15,7 +15,7 @@ const defaultItems = (): BoardItem[] =>
 let tierSeq = 0
 const newTierId = () => `tier-${Date.now().toString(36)}-${tierSeq++}`
 
-export type View = 'board' | 'draft'
+export type View = 'board' | 'stats' | 'draft'
 export type BoardMode = 'overall' | 'positional'
 export type CardSize = 'sm' | 'md' | 'lg'
 

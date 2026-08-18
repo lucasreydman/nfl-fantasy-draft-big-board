@@ -18,6 +18,12 @@ Skill positions only — **no kickers, no team defenses**, anywhere in the app.
 - **The player card** carries the whole case for a player, not just his ADP: the draft market (PPR/half/standard ADP, draft range, standard deviation), this season's projection with its projected positional finish, last season's actuals broken out by passing/rushing/receiving, and a usage block — snap share, carry share, target share, red-zone touches — measured against his own offense's totals and then **ranked against the position**: `5th of 76` carry share tells you Henry is a workhorse, `44th of 76` target share tells you he leaves the field on passing downs. Each bar spans zero to whatever the position's leader managed, with a tick at the median, and categories a position barely touches (a receiver's carries, a quarterback's targets) are dropped rather than drawn. Rookies fall back to projections alone.
 - Set a player's rank directly, nudge with the arrows, or drag. Export/import the board as JSON.
 
+**Luck Table** — the whole pool as one sortable table, last season measured two ways.
+
+Twelve columns: your rank, ADP, games (clean/played), raw PPG, adjusted PPG, **Δ PPG**, luck-adjusted PPG, **Δ LUCK**, raw points, adjusted 17-game pace, and **Δ PTS**. Every header sorts; the position tabs, search box, *Adjusted only*, and *Hide drafted* filter the whole thing; clicking a row opens the same player card the big board uses.
+
+The three spread columns are the point of it. Sort by **Δ PPG** and the top of the table is players whose averages were held down by circumstance rather than ability — Chase Brown at +4.4 (seven games with Cincinnati's starting quarterback), Jonathan Taylor +3.5, Drake London +2.9. Sort by **Δ LUCK** and you get touchdown regression in both directions: CeeDee Lamb and Justin Jefferson at +1.7 scored well under what their opportunity implied, and flipping the sort surfaces the players who scored well over it. **Δ PTS** is the season-level version and deliberately counts games missed as well as games removed, so a healthy pace stands out against a truncated season.
+
 **Mock Draft** — 10-team snake (8/12/14 also available, 10–18 rounds).
 
 - Full snake grid with the live pick highlighted and your column called out.

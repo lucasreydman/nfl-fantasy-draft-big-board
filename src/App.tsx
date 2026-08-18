@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { BigBoard } from './components/BigBoard'
 import { DraftView } from './components/DraftView'
+import { StatsBoard } from './components/StatsBoard'
 import { DATA, useStore } from './store/useStore'
 
 export default function App() {
@@ -27,6 +28,9 @@ export default function App() {
           <button className={view === 'board' ? 'on' : ''} onClick={() => setView('board')}>
             Big Board
           </button>
+          <button className={view === 'stats' ? 'on' : ''} onClick={() => setView('stats')}>
+            Luck Table
+          </button>
           <button className={view === 'draft' ? 'on' : ''} onClick={() => setView('draft')}>
             Mock Draft
             {picks.length > 0 && <span className="badge">{picks.length}</span>}
@@ -45,7 +49,7 @@ export default function App() {
         </div>
       </header>
 
-      <main>{view === 'board' ? <BigBoard /> : <DraftView />}</main>
+      <main>{view === 'board' ? <BigBoard /> : view === 'stats' ? <StatsBoard /> : <DraftView />}</main>
     </div>
   )
 }
