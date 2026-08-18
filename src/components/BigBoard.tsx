@@ -15,16 +15,19 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import type { BoardItem, Pos } from '../types'
-import { POSITIONS, POS_COLOR, TIER_COLORS } from '../lib/format'
+import { POSITIONS, POS_COLOR, TIER_COLORS, ordinal, pickLabel } from '../lib/format'
+import { picksForSlot, roundForPick } from '../lib/draft'
 import { PLAYER_BY_ID, selectBoard, useStore } from '../store/useStore'
-import { BoardHeader, PlayerRow, TierRow } from './BoardRow'
+import { BoardHeader, PickLine, PlayerRow, TierRow } from './BoardRow'
 import { PositionalBoard } from './PositionalBoard'
 import { PlayerDetail } from './PlayerDetail'
 
 export function BigBoard() {
   const {
     items, boardMode, cardSize, posFilter, query, hideDrafted, selectedId, picks, teams, mySlot,
-    setBoardMode, setCardSize, setPosFilter, setQuery, setHideDrafted, select, reorder, movePlayerBy,
+    rounds, showPickLines,
+    setBoardMode, setCardSize, setPosFilter, setQuery, setHideDrafted, setMySlot, setShowPickLines,
+    select, reorder, movePlayerBy,
     movePlayerToRank, addTier, updateTier, removeTier, autoTier, clearTiers, resetBoard,
     importBoard, draftPlayer,
   } = useStore()
@@ -84,6 +87,34 @@ export function BigBoard() {
       }),
     [items, q, posFilter, hideDrafted, draftedIds],
   )
+
+  // Pick markers only make sense against the full ranking, so they are hidden
+  // whenever the list is filtered down to a subset.
+  const linesVisible = showPickLines && posFilter === 'ALL' && !q
+  const myPicks = useMemo(
+    () => (linesVisible ? picksForSlot(mySlot, teams, rounds) : []),
+    [linesVisible, mySlot, teams, rounds],
+  )
+
+  type Renderable = BoardItem | { kind: 'pickline'; id: string; overall: number }
+  const rows: Renderable[] = useMemo(() => {
+    if (!myPicks.length) return visible
+    const out: Renderable[] = []
+    let next = 0
+    const marker = () => {
+      const overall = myPicks[next++]
+      out.push({ kind: 'pickline', id: `pickline-${overall}`, overall })
+    }
+    for (const item of visible) {
+      if (item.kind === 'player') {
+        const rank = rankById.get(item.id) ?? 0
+        while (next < myPicks.length && myPicks[next] <= rank) marker()
+      }
+      out.push(item)
+    }
+    while (next < myPicks.length) marker()
+    return out
+  }, [visible, myPicks, rankById])
 
   const onDragEnd = ({ active, over }: DragEndEvent) => {
     if (over && active.id !== over.id) reorder(String(active.id), String(over.id))
@@ -181,6 +212,29 @@ export function BigBoard() {
           </label>
 
           {boardMode === 'overall' && (
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={showPickLines}
+                onChange={(e) => setShowPickLines(e.target.checked)}
+              />
+              Pick lines
+            </label>
+          )}
+
+          {boardMode === 'overall' && showPickLines && (
+            <label className="check slot-picker">
+              Slot
+              <select value={mySlot} onChange={(e) => setMySlot(Number(e.target.value))}>
+                {Array.from({ length: teams }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+              <span className="dim">of {teams}</span>
+            </label>
+          )}
+
+          {boardMode === 'overall' && (
             <div className="segmented size-picker" title="Row density">
               {(['sm', 'md', 'lg'] as const).map((s) => (
                 <button key={s} className={cardSize === s ? 'on' : ''} onClick={() => setCardSize(s)}>
@@ -251,8 +305,16 @@ export function BigBoard() {
               <BoardHeader />
               <SortableContext items={visible.map((i) => i.id)} strategy={verticalListSortingStrategy}>
                 <div className="list">
-                {visible.map((item) =>
-                  item.kind === 'tier' ? (
+                {rows.map((item) =>
+                  item.kind === 'pickline' ? (
+                    <PickLine
+                      key={item.id}
+                      label={pickLabel(item.overall, teams)}
+                      round={roundForPick(item.overall, teams)}
+                      overall={item.overall}
+                      nth={ordinal(myPicks.indexOf(item.overall) + 1)}
+                    />
+                  ) : item.kind === 'tier' ? (
                     <TierRow
                       key={item.id}
                       id={item.id}

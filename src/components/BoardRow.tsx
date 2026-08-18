@@ -165,3 +165,26 @@ export function TierRow({ id, name, color, count, colors, onRename, onRecolor, o
     </div>
   )
 }
+
+interface PickLineProps {
+  label: string
+  round: number
+  overall: number
+  nth: string
+}
+
+/**
+ * A static marker showing where one of your picks lands on the board. Purely
+ * derived from league size + draft slot, so it is never part of the ranking.
+ */
+export function PickLine({ label, round, overall, nth }: PickLineProps) {
+  return (
+    <div className="pick-line">
+      <span className="pick-line-chip">{label}</span>
+      <span className="pick-line-text">
+        Your {nth} pick · round {round} · #{overall} overall
+      </span>
+      <span className="pick-line-rule" />
+    </div>
+  )
+}

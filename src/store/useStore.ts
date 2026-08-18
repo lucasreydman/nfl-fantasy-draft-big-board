@@ -23,6 +23,7 @@ interface State {
   view: View
   boardMode: BoardMode
   cardSize: CardSize
+  showPickLines: boolean
   items: BoardItem[]
   selectedId: string | null
   posFilter: Pos | 'ALL'
@@ -39,6 +40,7 @@ interface State {
   setView: (v: View) => void
   setBoardMode: (m: BoardMode) => void
   setCardSize: (s: CardSize) => void
+  setShowPickLines: (v: boolean) => void
   setPosFilter: (p: Pos | 'ALL') => void
   setQuery: (q: string) => void
   setHideDrafted: (v: boolean) => void
@@ -72,6 +74,7 @@ export const useStore = create<State>()(
       view: 'board',
       boardMode: 'overall',
       cardSize: 'md',
+      showPickLines: true,
       items: defaultItems(),
       selectedId: null,
       posFilter: 'ALL',
@@ -88,6 +91,7 @@ export const useStore = create<State>()(
       setView: (view) => set({ view }),
       setBoardMode: (boardMode) => set({ boardMode }),
       setCardSize: (cardSize) => set({ cardSize }),
+      setShowPickLines: (showPickLines) => set({ showPickLines }),
       setPosFilter: (posFilter) => set({ posFilter }),
       setQuery: (query) => set({ query }),
       setHideDrafted: (hideDrafted) => set({ hideDrafted }),
@@ -280,6 +284,7 @@ export const useStore = create<State>()(
         speed: s.speed,
         boardMode: s.boardMode,
         cardSize: s.cardSize,
+        showPickLines: s.showPickLines,
         hideDrafted: s.hideDrafted,
       }),
       merge: (persisted, current) => {

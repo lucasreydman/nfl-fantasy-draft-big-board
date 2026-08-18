@@ -48,3 +48,10 @@ const INJURY_SHORT: Record<string, string> = {
 
 export const injuryTag = (status: string | null) =>
   status ? (INJURY_SHORT[status] ?? status.slice(0, 3).toUpperCase()) : null
+
+/** 1 -> "1st", 2 -> "2nd", 13 -> "13th" */
+export const ordinal = (n: number) => {
+  const rem100 = n % 100
+  if (rem100 >= 11 && rem100 <= 13) return `${n}th`
+  return `${n}${['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`
+}
