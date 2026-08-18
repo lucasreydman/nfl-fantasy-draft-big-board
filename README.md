@@ -20,7 +20,7 @@ Skill positions only — **no kickers, no team defenses**, anywhere in the app.
 
 **Luck Table** — the whole pool as one sortable table, last season measured two ways.
 
-Twelve columns: your rank, ADP, games (clean/played), raw PPG, adjusted PPG, **Δ PPG**, luck-adjusted PPG, **Δ LUCK**, raw points, adjusted 17-game pace, and **Δ PTS**. Every header sorts; the position tabs, search box, *Adjusted only*, and *Hide drafted* filter the whole thing; clicking a row opens the same player card the big board uses.
+Twelve columns: your rank, ADP, games (clean/played), raw PPG, adjusted PPG, **Δ PPG**, luck-adjusted PPG, **Δ LUCK**, raw points, adjusted 17-game pace, and **Δ PTS**. Every header sorts; the position tabs, search box, *Adjusted only*, and *Hide drafted* filter the whole thing; clicking a row opens the same player card the big board uses. The position tabs carry a **FLEX** option — every flex-eligible player, which is everyone but the quarterbacks — and they are one shared control, so a filter set here is still set on the big board and in the mock draft.
 
 The three spread columns are the point of it. Sort by **Δ PPG** and the top of the table is players whose averages were held down by circumstance rather than ability — Chase Brown at +4.4 (seven games with Cincinnati's starting quarterback), Jonathan Taylor +3.5, Drake London +2.9. Sort by **Δ LUCK** and you get touchdown regression in both directions: CeeDee Lamb and Justin Jefferson at +1.7 scored well under what their opportunity implied, and flipping the sort surfaces the players who scored well over it. **Δ PTS** is the season-level version and deliberately counts games missed as well as games removed, so a healthy pace stands out against a truncated season.
 

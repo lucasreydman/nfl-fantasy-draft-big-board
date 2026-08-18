@@ -1,5 +1,8 @@
 export type Pos = 'QB' | 'RB' | 'WR' | 'TE'
 
+/** What the position tabs can be set to. FLEX is every position a flex spot accepts. */
+export type PosFilter = Pos | 'ALL' | 'FLEX'
+
 /**
  * A season of Sleeper stats. Every counting field is optional: the fetch script strips
  * anything a player did not record, and projections carry a thinner set than actuals.

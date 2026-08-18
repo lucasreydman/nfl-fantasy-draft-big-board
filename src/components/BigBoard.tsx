@@ -14,11 +14,12 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import type { BoardItem, Pos } from '../types'
-import { POSITIONS, POS_COLOR, TIER_COLORS, ordinal, pickLabel } from '../lib/format'
+import type { BoardItem } from '../types'
+import { POSITIONS, POS_COLOR, TIER_COLORS, matchesPos, ordinal, pickLabel } from '../lib/format'
 import { picksForSlot, roundForPick } from '../lib/draft'
 import { PLAYER_BY_ID, selectBoard, useStore } from '../store/useStore'
 import { BoardHeader, PickLine, PlayerRow, TierRow } from './BoardRow'
+import { PosTabs } from './PosTabs'
 import { PositionalBoard } from './PositionalBoard'
 import { PlayerDetail } from './PlayerDetail'
 
@@ -81,7 +82,7 @@ export function BigBoard() {
         const p = PLAYER_BY_ID.get(item.id)
         if (!p) return false
         if (hideDrafted && draftedIds.has(p.id)) return false
-        if (posFilter !== 'ALL' && p.pos !== posFilter) return false
+        if (!matchesPos(posFilter, p.pos)) return false
         if (q && !`${p.name} ${p.team ?? ''} ${p.pos}`.toLowerCase().includes(q)) return false
         return true
       }),
@@ -188,19 +189,7 @@ export function BigBoard() {
             onChange={(e) => setQuery(e.target.value)}
           />
 
-          <div className="pos-tabs">
-            {(['ALL', ...POSITIONS] as (Pos | 'ALL')[]).map((p) => (
-              <button
-                key={p}
-                className={posFilter === p ? 'on' : ''}
-                style={p === 'ALL' ? undefined : { ['--pos-color' as string]: POS_COLOR[p as Pos] }}
-                onClick={() => setPosFilter(p)}
-                disabled={boardMode === 'positional' && p !== 'ALL'}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
+          <PosTabs value={posFilter} onChange={setPosFilter} onlyAll={boardMode === 'positional'} />
 
           <label className="check">
             <input

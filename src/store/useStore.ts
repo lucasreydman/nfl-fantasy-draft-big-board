@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import raw from '../data/players.json'
-import type { BoardItem, Pick, Player, PlayerData, Pos, StatMode } from '../types'
+import type { BoardItem, Pick, Player, PlayerData, PosFilter, StatMode } from '../types'
 import { TIER_COLORS } from '../lib/format'
 import { cpuPick, roundForPick, slotForPick } from '../lib/draft'
 
@@ -28,7 +28,7 @@ interface State {
   statMode: StatMode
   items: BoardItem[]
   selectedId: string | null
-  posFilter: Pos | 'ALL'
+  posFilter: PosFilter
   query: string
   hideDrafted: boolean
 
@@ -44,7 +44,7 @@ interface State {
   setCardSize: (s: CardSize) => void
   setShowPickLines: (v: boolean) => void
   setStatMode: (m: StatMode) => void
-  setPosFilter: (p: Pos | 'ALL') => void
+  setPosFilter: (p: PosFilter) => void
   setQuery: (q: string) => void
   setHideDrafted: (v: boolean) => void
   select: (id: string | null) => void

@@ -1,4 +1,4 @@
-import type { Pos } from '../types'
+import type { Pos, PosFilter } from '../types'
 
 export const POSITIONS: Pos[] = ['QB', 'RB', 'WR', 'TE']
 
@@ -8,6 +8,18 @@ export const POS_COLOR: Record<Pos, string> = {
   WR: '#58a7ff',
   TE: '#ffae58',
 }
+
+export const POS_FILTERS: PosFilter[] = ['ALL', 'QB', 'RB', 'WR', 'TE', 'FLEX']
+
+/** Flex has no position of its own, so it gets a colour that belongs to none of them. */
+export const FLEX_COLOR = '#b48bff'
+
+export const filterColor = (f: PosFilter) =>
+  f === 'FLEX' ? FLEX_COLOR : f === 'ALL' ? undefined : POS_COLOR[f]
+
+/** A flex spot takes everyone but the quarterback. */
+export const matchesPos = (filter: PosFilter, pos: Pos) =>
+  filter === 'ALL' || (filter === 'FLEX' ? pos !== 'QB' : pos === filter)
 
 export const TIER_COLORS = [
   '#f45b69', '#ff9f1c', '#ffd166', '#06d6a0',

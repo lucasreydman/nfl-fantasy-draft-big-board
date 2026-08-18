@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
-import type { Player, Pos } from '../types'
-import { POSITIONS, POS_COLOR, fmtAdp, injuryTag } from '../lib/format'
+import type { Player } from '../types'
+import { POS_COLOR, fmtAdp, injuryTag, matchesPos } from '../lib/format'
 import { DATA, PLAYERS, selectBoard, useStore } from '../store/useStore'
 import { Avatar } from './Avatar'
+import { PosTabs } from './PosTabs'
 import { PlayerDetail } from './PlayerDetail'
 
 /** A full season, for turning a per-game rate back into a season-shaped number. */
@@ -119,7 +120,7 @@ export function StatsBoard() {
   const q = query.trim().toLowerCase()
   const visible = useMemo(() => {
     const filtered = rows.filter((r) => {
-      if (posFilter !== 'ALL' && r.player.pos !== posFilter) return false
+      if (!matchesPos(posFilter, r.player.pos)) return false
       if (hideDrafted && draftedIds.has(r.player.id)) return false
       if (adjustedOnly && !r.dropped) return false
       if (!q) return true
@@ -164,18 +165,7 @@ export function StatsBoard() {
             onChange={(e) => setQuery(e.target.value)}
           />
 
-          <div className="pos-tabs">
-            {(['ALL', ...POSITIONS] as (Pos | 'ALL')[]).map((p) => (
-              <button
-                key={p}
-                className={posFilter === p ? 'on' : ''}
-                style={p === 'ALL' ? undefined : { ['--pos-color' as string]: POS_COLOR[p as Pos] }}
-                onClick={() => setPosFilter(p)}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
+          <PosTabs value={posFilter} onChange={setPosFilter} />
 
           <label className="check">
             <input type="checkbox" checked={adjustedOnly} onChange={(e) => setAdjustedOnly(e.target.checked)} />

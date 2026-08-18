@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Player, Pos } from '../types'
-import { POSITIONS, POS_COLOR, fmtAdp, pickLabel } from '../lib/format'
+import type { Player } from '../types'
+import { POS_COLOR, fmtAdp, matchesPos, pickLabel } from '../lib/format'
+import { PosTabs } from './PosTabs'
 import { fillLineup, picksForSlot, slotForPick } from '../lib/draft'
 import { PLAYER_BY_ID, selectBoard, useStore } from '../store/useStore'
 import { Avatar } from './Avatar'
@@ -33,7 +34,7 @@ export function DraftView() {
   const shown = useMemo(
     () =>
       available.filter(({ player: p }) => {
-        if (posFilter !== 'ALL' && p.pos !== posFilter) return false
+        if (!matchesPos(posFilter, p.pos)) return false
         if (q && !`${p.name} ${p.team ?? ''} ${p.pos}`.toLowerCase().includes(q)) return false
         return true
       }),
@@ -176,18 +177,7 @@ export function DraftView() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-            <div className="pos-tabs">
-              {(['ALL', ...POSITIONS] as (Pos | 'ALL')[]).map((p) => (
-                <button
-                  key={p}
-                  className={posFilter === p ? 'on' : ''}
-                  style={p === 'ALL' ? undefined : { ['--pos-color' as string]: POS_COLOR[p as Pos] }}
-                  onClick={() => setPosFilter(p)}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
+            <PosTabs value={posFilter} onChange={setPosFilter} />
             <button className="btn ghost" onClick={() => setView('board')}>Edit board</button>
           </header>
 
