@@ -14,6 +14,7 @@ interface Props {
   draftedBy: string | null
   boardSize: number
   onMoveToRank: (rank: number) => void
+  onRemove: () => void
   onDraft?: () => void
   fallback: React.ReactNode
 }
@@ -173,7 +174,7 @@ function droppedSummary(adj: AdjustedLine) {
 
 export function PlayerDetail({
   player, rank, posRank, tierName, tierColor, drafted, draftedBy, boardSize,
-  onMoveToRank, onDraft, fallback,
+  onMoveToRank, onRemove, onDraft, fallback,
 }: Props) {
   const [rankInput, setRankInput] = useState('')
   const statMode = useStore((s) => s.statMode)
@@ -429,6 +430,10 @@ export function PlayerDetail({
           {drafted ? `Drafted${draftedBy ? ` · ${draftedBy}` : ''}` : `Draft ${player.name}`}
         </button>
       )}
+
+      <button className="btn danger block" onClick={onRemove}>
+        Remove from board
+      </button>
     </aside>
   )
 }

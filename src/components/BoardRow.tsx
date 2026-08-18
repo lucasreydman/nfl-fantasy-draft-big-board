@@ -42,13 +42,14 @@ interface RowProps {
   selected: boolean
   onSelect: () => void
   onBump: (delta: number) => void
+  onRemove: () => void
   onDraft?: () => void
   avatarSize?: number
 }
 
 export const PlayerRow = memo(function PlayerRow({
-  player, rank, posRank, tierColor, drafted, draftedBy, selected, onSelect, onBump, onDraft,
-  avatarSize = 44,
+  player, rank, posRank, tierColor, drafted, draftedBy, selected, onSelect, onBump, onRemove,
+  onDraft, avatarSize = 44,
 }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: player.id,
@@ -101,6 +102,14 @@ export const PlayerRow = memo(function PlayerRow({
       <div className="row-actions">
         <button onClick={(e) => { e.stopPropagation(); onBump(-1) }} title="Move up">▲</button>
         <button onClick={(e) => { e.stopPropagation(); onBump(1) }} title="Move down">▼</button>
+        <button
+          className="row-remove"
+          onClick={(e) => { e.stopPropagation(); onRemove() }}
+          title={`Remove ${player.name} from the board`}
+          aria-label={`Remove ${player.name} from the board`}
+        >
+          ✕
+        </button>
         {onDraft && (
           <button
             className="draft-btn"

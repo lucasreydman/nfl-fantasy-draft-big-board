@@ -73,7 +73,8 @@ const spreadTone = (v: number | null, floor: number) =>
 
 export function StatsBoard() {
   const { items, query, posFilter, selectedId, picks, teams, mySlot, hideDrafted,
-    setQuery, setPosFilter, setHideDrafted, select, movePlayerToRank, draftPlayer } = useStore()
+    setQuery, setPosFilter, setHideDrafted, select, movePlayerToRank, removePlayer,
+    draftPlayer } = useStore()
 
   const [sortKey, setSortKey] = useState<Key>('adjPpg')
   const [desc, setDesc] = useState(true)
@@ -302,6 +303,7 @@ export function StatsBoard() {
         drafted={selected ? draftedIds.has(selected.id) : false}
         draftedBy={selected ? draftedBy.get(selected.id) ?? null : null}
         boardSize={ranked.length}
+        onRemove={() => selected && removePlayer(selected.id)}
         onMoveToRank={(r) => selected && movePlayerToRank(selected.id, r)}
         onDraft={selected && picks.length ? () => draftPlayer(selected.id) : undefined}
         fallback={

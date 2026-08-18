@@ -29,6 +29,8 @@ interface State {
   /** Whether player cards read last season raw or with distorted games dropped. */
   statMode: StatMode
   items: BoardItem[]
+  /** Players you took off the board. Kept so a data refresh doesn't quietly re-add them. */
+  removedIds: string[]
   selectedId: string | null
   posFilter: PosFilter
   query: string
@@ -55,6 +57,9 @@ interface State {
   reorder: (activeId: string, overId: string) => void
   movePlayerBy: (playerId: string, delta: number) => void
   movePlayerToRank: (playerId: string, rank: number) => void
+  removePlayer: (playerId: string) => void
+  addPlayer: (playerId: string) => void
+  addAllPlayers: () => void
   addTier: (afterId?: string) => void
   updateTier: (id: string, patch: { name?: string; color?: string }) => void
   removeTier: (id: string) => void
@@ -84,6 +89,7 @@ export const useStore = create<State>()(
       showPickLines: true,
       statMode: 'raw',
       items: defaultItems(),
+      removedIds: [],
       selectedId: null,
       posFilter: 'ALL',
       query: '',
@@ -148,6 +154,38 @@ export const useStore = create<State>()(
           }
           items.splice(to, 0, moved)
           return { items }
+        }),
+
+      removePlayer: (playerId) =>
+        set((s) => {
+          if (!s.items.some((i) => i.kind === 'player' && i.id === playerId)) return s
+          return {
+            items: s.items.filter((i) => !(i.kind === 'player' && i.id === playerId)),
+            removedIds: [...s.removedIds.filter((id) => id !== playerId), playerId],
+            selectedId: s.selectedId === playerId ? null : s.selectedId,
+          }
+        }),
+
+      /** Puts a player back, at the bottom, where he sits until you drag him up. */
+      addPlayer: (playerId) =>
+        set((s) => {
+          if (!PLAYER_BY_ID.has(playerId)) return s
+          if (s.items.some((i) => i.kind === 'player' && i.id === playerId)) return s
+          return {
+            items: [...s.items, { kind: 'player', id: playerId }],
+            removedIds: s.removedIds.filter((id) => id !== playerId),
+          }
+        }),
+
+      addAllPlayers: () =>
+        set((s) => {
+          const present = new Set(s.items.filter((i) => i.kind === 'player').map((i) => i.id))
+          const missing = PLAYERS.filter((p) => !present.has(p.id)).sort((a, b) => a.adp - b.adp)
+          if (!missing.length) return { removedIds: [] }
+          return {
+            items: [...s.items, ...missing.map((p) => ({ kind: 'player', id: p.id }) as BoardItem)],
+            removedIds: [],
+          }
         }),
 
       addTier: (afterId) =>
@@ -226,8 +264,14 @@ export const useStore = create<State>()(
           return { items: out }
         }),
 
-      resetBoard: () => set({ items: defaultItems(), selectedId: null }),
-      importBoard: (items) => set({ items }),
+      resetBoard: () => set({ items: defaultItems(), removedIds: [], selectedId: null }),
+
+      /** An import is the whole board, so anyone it leaves out counts as removed. */
+      importBoard: (items) =>
+        set(() => {
+          const present = new Set(items.filter((i) => i.kind === 'player').map((i) => i.id))
+          return { items, removedIds: PLAYERS.filter((p) => !present.has(p.id)).map((p) => p.id) }
+        }),
 
       setTeams: (teams) => set({ teams, picks: [], mySlot: Math.min(get().mySlot, teams) }),
       setRounds: (rounds) => set({ rounds, picks: [] }),
@@ -299,6 +343,7 @@ export const useStore = create<State>()(
       version: 1,
       partialize: (s) => ({
         items: s.items,
+        removedIds: s.removedIds,
         teams: s.teams,
         rounds: s.rounds,
         mySlot: s.mySlot,
@@ -318,11 +363,17 @@ export const useStore = create<State>()(
 
         // Reconcile a saved board against the current player pool: drop players
         // that vanished, append newcomers so a data refresh never loses work.
+        // Players you deliberately removed stay off; only genuine newcomers get appended.
+        const removedIds = (p.removedIds ?? []).filter((id) => known.has(id))
+        const removed = new Set(removedIds)
+
         let items = p.items
         if (items?.length) {
           const kept = items.filter((i) => i.kind === 'tier' || known.has(i.id))
           const present = new Set(kept.filter((i) => i.kind === 'player').map((i) => i.id))
-          const missing = PLAYERS.filter((x) => !present.has(x.id)).sort((a, b) => a.adp - b.adp)
+          const missing = PLAYERS.filter((x) => !present.has(x.id) && !removed.has(x.id)).sort(
+            (a, b) => a.adp - b.adp,
+          )
           items = [...kept, ...missing.map((x) => ({ kind: 'player', id: x.id }) as BoardItem)]
         } else {
           items = current.items
@@ -334,7 +385,7 @@ export const useStore = create<State>()(
         const picks =
           p.picks?.length && p.picks.some((pick) => !known.has(pick.playerId)) ? [] : p.picks
 
-        return { ...current, ...p, items, picks: picks ?? current.picks }
+        return { ...current, ...p, items, removedIds, picks: picks ?? current.picks }
       },
     },
   ),

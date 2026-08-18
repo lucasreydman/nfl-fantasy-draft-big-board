@@ -22,6 +22,7 @@ import { BoardHeader, PickLine, PlayerRow, TierRow } from './BoardRow'
 import { PosTabs } from './PosTabs'
 import { PositionalBoard } from './PositionalBoard'
 import { PlayerDetail } from './PlayerDetail'
+import { AddPlayer } from './AddPlayer'
 
 export function BigBoard() {
   const {
@@ -29,8 +30,8 @@ export function BigBoard() {
     rounds, showPickLines,
     setBoardMode, setCardSize, setPosFilter, setQuery, setHideDrafted, setMySlot, setShowPickLines,
     select, reorder, movePlayerBy,
-    movePlayerToRank, addTier, updateTier, removeTier, autoTier, clearTiers, resetBoard,
-    importBoard, draftPlayer,
+    movePlayerToRank, removePlayer, addTier, updateTier, removeTier, autoTier, clearTiers,
+    resetBoard, importBoard, draftPlayer,
   } = useStore()
 
   const [sensitivity, setSensitivity] = useState(4)
@@ -344,6 +345,7 @@ export function BigBoard() {
                           selected={selectedId === p.id}
                           onSelect={() => select(p.id)}
                           onBump={(d) => movePlayerBy(p.id, d)}
+                          onRemove={() => removePlayer(p.id)}
                           onDraft={picks.length ? () => draftPlayer(p.id) : undefined}
                           avatarSize={cardSize === 'sm' ? 32 : cardSize === 'lg' ? 60 : 44}
                         />
@@ -357,6 +359,10 @@ export function BigBoard() {
             </div>
           </DndContext>
         )}
+
+        <div className={`size-${cardSize}`}>
+          <AddPlayer />
+        </div>
       </div>
 
       <PlayerDetail
@@ -370,6 +376,7 @@ export function BigBoard() {
         boardSize={ranked.length}
         onMoveToRank={(r) => selected && movePlayerToRank(selected.id, r)}
         onDraft={selected && picks.length ? () => draftPlayer(selected.id) : undefined}
+        onRemove={() => selected && removePlayer(selected.id)}
         fallback={
           <>
             <h3>Your board at a glance</h3>

@@ -246,7 +246,7 @@ select {
   display: flex;
   flex-direction: column;
   /* One shared track template keeps the header and every row in alignment. */
-  --row-cols: 18px var(--w-rank, 44px) auto minmax(150px, 1fr) 62px 56px 52px 64px 62px 58px 96px;
+  --row-cols: 18px var(--w-rank, 44px) auto minmax(150px, 1fr) 62px 56px 52px 64px 62px 58px 124px;
   --row-gap: 14px;
 }
 
@@ -364,6 +364,49 @@ select {
   color: var(--accent); border-color: #1e4d36;
 }
 .row-actions .draft-btn:disabled { opacity: 0.35; }
+.row-actions .row-remove { font-size: 10px; }
+.row-actions .row-remove:hover { color: var(--danger); border-color: #3a2732; background: #2a1a20; }
+
+/* ---------- adding players back ---------- */
+
+.add-player {
+  flex: none;
+  border-top: 1px solid var(--line-soft);
+  padding: 8px 16px 10px 8px;
+  margin: 0 auto;
+  width: 100%;
+  max-width: var(--board-max, 1140px);
+}
+.add-player-bar { display: flex; align-items: center; gap: 10px; }
+.add-player-search { width: 100%; margin-top: 8px; }
+.add-player-results {
+  display: flex; flex-direction: column; gap: 4px; margin-top: 6px;
+  max-height: 36vh; overflow-y: auto;
+}
+
+.add-hit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 5px 10px 5px 6px;
+  border-radius: 8px;
+  border: 1px solid var(--line-soft);
+  background: var(--panel);
+  position: relative;
+}
+.add-hit::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 8px 0 0 8px;
+  background: var(--pos-color);
+}
+.add-hit:hover { background: var(--panel-2); border-color: var(--line); }
+.add-hit-name { font-weight: 600; margin-right: auto; }
+.add-hit-cta { color: var(--accent); font-weight: 700; font-size: 12px; }
+.add-hit-more { padding: 4px 6px; }
 
 /* Density presets */
 .size-sm { --row-h: 46px; --fs-name: 14px; --fs-rank: 14px; --w-rank: 38px; --row-gap: 12px; --board-max: 1020px; }
@@ -373,11 +416,11 @@ select {
 
 /* Narrower viewports: shed the least important columns rather than squeeze. */
 @media (max-width: 1500px) {
-  .list-wrap { --row-cols: 18px var(--w-rank, 44px) auto minmax(140px, 1fr) 60px 54px 50px 62px 58px 94px; }
+  .list-wrap { --row-cols: 18px var(--w-rank, 44px) auto minmax(140px, 1fr) 60px 54px 50px 62px 58px 122px; }
   .list-head span:nth-child(9), .row > *:nth-child(9) { display: none; }
 }
 @media (max-width: 1280px) {
-  .list-wrap { --row-cols: 18px var(--w-rank, 40px) auto minmax(120px, 1fr) 56px 50px 46px 58px 88px; --row-gap: 10px; }
+  .list-wrap { --row-cols: 18px var(--w-rank, 40px) auto minmax(120px, 1fr) 56px 50px 46px 58px 116px; --row-gap: 10px; }
   .list-head span:nth-child(7), .row > *:nth-child(7) { display: none; }
 }
 
@@ -982,6 +1025,8 @@ select {
     --row-gap: 8px;
   }
   .row-team, .row-bye, .row-cons, .row-actions { display: none; }
+  .add-player { padding: 8px 10px calc(10px + env(safe-area-inset-bottom)); }
+  .add-hit .dim { display: none; }
   .list-head { padding: 10px 10px 6px 6px; }
   .row { padding-left: 6px; padding-right: 10px; }
   .row-name { font-size: 14px; }
