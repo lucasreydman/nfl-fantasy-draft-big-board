@@ -29,7 +29,17 @@ const renumberTiers = (items: BoardItem[]): BoardItem[] => {
   })
 }
 
-export type View = 'board' | 'stats' | 'draft' | 'vegas'
+export type View = 'board' | 'stats' | 'draft' | 'vegas' | 'god'
+
+/** How much each signal counts on the Godfather board, 0–100 each (normalized when mixed). */
+export interface GodWeights {
+  vegas: number
+  you: number
+  adp: number
+  luck: number
+}
+
+export const GOD_DEFAULTS: GodWeights = { vegas: 40, you: 30, adp: 20, luck: 10 }
 export type BoardMode = 'overall' | 'positional'
 export type CardSize = 'sm' | 'md' | 'lg'
 /** What the CPU teams value: the public market, or your own rankings. */
@@ -51,6 +61,7 @@ interface State {
   hideDrafted: boolean
   /** Weight on Vegas in the blended board, 0–100. 0 is your board; 100 is the books'. */
   vegasBlend: number
+  godW: GodWeights
 
   teams: number
   rounds: number
@@ -69,6 +80,7 @@ interface State {
   setQuery: (q: string) => void
   setHideDrafted: (v: boolean) => void
   setVegasBlend: (n: number) => void
+  setGodW: (patch: Partial<GodWeights>) => void
   select: (id: string | null) => void
 
   reorder: (activeId: string, overId: string) => void
@@ -122,6 +134,7 @@ export const useStore = create<State>()(
       query: '',
       hideDrafted: true,
       vegasBlend: 50,
+      godW: GOD_DEFAULTS,
 
       teams: 10,
       rounds: 15,
@@ -140,6 +153,7 @@ export const useStore = create<State>()(
       setQuery: (query) => set({ query }),
       setHideDrafted: (hideDrafted) => set({ hideDrafted }),
       setVegasBlend: (vegasBlend) => set({ vegasBlend }),
+      setGodW: (patch) => set((s) => ({ godW: { ...s.godW, ...patch } })),
       select: (selectedId) => set({ selectedId }),
 
       reorder: (activeId, overId) =>
@@ -443,6 +457,7 @@ export const useStore = create<State>()(
         statMode: s.statMode,
         hideDrafted: s.hideDrafted,
         vegasBlend: s.vegasBlend,
+        godW: s.godW,
       }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<State>

@@ -34,6 +34,15 @@ Sportsbooks hang over/under lines on every stat this league pays for — passing
 npm run fetch:vegas   # refresh the lines (run fetch:players first — it matches against players.json)
 ```
 
+**The Godfather Board** — every signal the app has, weighed into one ranking.
+
+Four voices, one verdict: the sportsbooks' season lines (the Vegas rank), **your board**, **Sleeper ADP**, and last season's **luck-adjusted pace over replacement** — the Luck Table's opinion of what a player *is*, folded in as a number. Each signal ranks the same pool, ranks become percentiles so pools of different sizes can mix, and a weighted mean orders the board. The weights are sliders (default Vegas 40 / You 30 / ADP 20 / Luck 10) and persist. A player a signal can't see — a rookie has no luck signal, a deep sleeper has no lines — hands that weight to the other signals rather than being punished for it, and the row says which eye is blind.
+
+- **It's live.** Re-rank a player on your big board and the Godfather board reorders itself on the spot. Move a weight slider, same thing.
+- **↻ Refresh data** re-pulls today's Sleeper ADP and today's Vegas lines through a serverless endpoint (`/api/live`, same code path as the fetch scripts — the vite dev server serves it too, so it works on localhost). The refresh is cached in the browser and survives reloads until a newer bundle ships. The Vegas view uses the same live data, so one refresh updates both boards, every Δ column, and the player cards.
+- **VAL** is ADP rank minus Godfather rank over the same pool — the draft-day column: positive means the room hands him to you later than the verdict says he should go.
+- **Apply to board** writes the Godfather order onto your big board (players permute in place, tiers stay), so the mock draft's "best available" can be the blend.
+
 **Luck Table** — the whole pool as one sortable table, last season measured two ways.
 
 Twelve columns: your rank, ADP, games (clean/played), raw PPG, adjusted PPG, **Δ PPG**, luck-adjusted PPG, **Δ LUCK**, raw points, adjusted 17-game pace, and **Δ PTS**. Every header sorts; the position tabs, search box, *Adjusted only*, and *Hide drafted* filter the whole thing; clicking a row opens the same player card the big board uses. The position tabs carry a **FLEX** option — every flex-eligible player, which is everyone but the quarterbacks — and they are one shared control, so a filter set here is still set on the big board and in the mock draft.

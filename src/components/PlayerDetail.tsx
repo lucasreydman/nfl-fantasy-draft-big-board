@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import type { AdjustedLine, Benchmark, Player, Pos, StatLine, VegasMarket } from '../types'
+import type { AdjustedLine, Benchmark, Player, Pos, StatLine, VegasMarket, VegasPlayer } from '../types'
 import { POS_COLOR, fmtAdp, ordinal, teamLogo } from '../lib/format'
-import { VEGAS, VEGAS_POOL, vegasFor } from '../lib/vegas'
+import { useLive } from '../store/useLive'
 import { DATA, useStore } from '../store/useStore'
 import { Avatar } from './Avatar'
 
@@ -176,7 +176,7 @@ const mkt = (m: VegasMarket | undefined, unit: string, digits = 0) => {
 }
 
 /** Season lines grouped the way the stat rows already read: pass, rush, rec. */
-const vegasLines = (v: NonNullable<ReturnType<typeof vegasFor>>) => ({
+const vegasLines = (v: VegasPlayer) => ({
   pass: [
     mkt(v.mkts.passYd, 'yd'),
     mkt(v.mkts.passTd, 'TD', 1),
@@ -206,6 +206,7 @@ export function PlayerDetail({
   const statMode = useStore((s) => s.statMode)
   const select = useStore((s) => s.select)
   const setStatMode = useStore((s) => s.setStatMode)
+  const vegasData = useLive((s) => s.vegas)
 
   useEffect(() => setRankInput(rank ? String(rank) : ''), [rank, player?.id])
 
@@ -223,7 +224,8 @@ export function PlayerDetail({
   // A positive split means Sleeper leagues take him earlier than FFC's mocks do.
   const marketSplit = player.adpFfc == null ? null : player.adpFfc - player.adp
 
-  const vegas = vegasFor(player.id)
+  const vegas = vegasData.players[player.id] ?? null
+  const vegasPool = Object.keys(vegasData.players).length
   // Rank-vs-rank over the covered pool: positive means the books are higher on him than ADP is.
   const vegasEdge = vegas ? vegas.adpRank - vegas.rank : null
   const vLines = vegas ? vegasLines(vegas) : null
@@ -335,7 +337,7 @@ export function PlayerDetail({
         >
           <div className="stat-grid">
             <Stat label="Implied pts" value={n1(vegas.fpts)} />
-            <Stat label="Vegas rank" value={`#${vegas.rank} of ${VEGAS_POOL}`} />
+            <Stat label="Vegas rank" value={`#${vegas.rank} of ${vegasPool}`} />
             <Stat label="ADP rank" value={`#${vegas.adpRank}`} />
           </div>
           {vegasEdge != null && Math.abs(vegasEdge) >= 5 && (
@@ -350,7 +352,7 @@ export function PlayerDetail({
             ))}
           </div>
           <p className="usage-key">
-            Season-long over/unders, median across the books, scored as {VEGAS.scoring}. A ~ number is a market
+            Season-long over/unders, median across the books, scored as {vegasData.scoring}. A ~ number is a market
             no book posted, estimated from his other lines. Rank is points over what a 10-team league leaves on
             waivers.
           </p>

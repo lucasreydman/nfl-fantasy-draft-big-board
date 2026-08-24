@@ -827,6 +827,36 @@ select {
   font-size: 11px;
 }
 
+.refresh-data { display: flex; align-items: center; gap: 8px; }
+.refresh-err { color: #ff8b6b; }
+
+/* ---------- godfather board ---------- */
+
+.god-wrap {
+  --stat-cols: minmax(150px, 1fr) 44px 52px 44px 44px 48px 58px;
+}
+
+.god-weights {
+  background: var(--bg);
+  padding-top: 7px;
+  padding-bottom: 7px;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.gw-title {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--dim);
+}
+.gw { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); }
+.gw-label { min-width: 34px; }
+.gw input[type='range'] { width: 86px; accent-color: var(--accent); }
+.gw-pct {
+  min-width: 30px;
+  font-variant-numeric: tabular-nums;
+  color: var(--dim);
+  font-size: 11px;
+}
+
 .stats-key {
   margin: 0;
   padding: 9px 16px 11px;

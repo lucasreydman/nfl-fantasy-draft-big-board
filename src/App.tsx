@@ -3,11 +3,13 @@ import { BigBoard } from './components/BigBoard'
 import { DraftView } from './components/DraftView'
 import { StatsBoard } from './components/StatsBoard'
 import { VegasBoard } from './components/VegasBoard'
+import { GodfatherBoard } from './components/GodfatherBoard'
 import { DATA, useStore } from './store/useStore'
 
-/** The two things the app is for. The luck table is a lookup, not a third workspace. */
+/** The workspaces. The luck table and Vegas view are lookups, not places you live. */
 const PRIMARY = [
   { id: 'board', label: 'Big Board', short: 'Board' },
+  { id: 'god', label: 'Godfather', short: 'Don' },
   { id: 'draft', label: 'Mock Draft', short: 'Draft' },
 ] as const
 
@@ -78,7 +80,11 @@ export default function App() {
       </header>
 
       <main>
-        {view === 'board' ? <BigBoard /> : onStats ? <StatsBoard /> : onVegas ? <VegasBoard /> : <DraftView />}
+        {view === 'board' ? <BigBoard />
+          : view === 'god' ? <GodfatherBoard />
+          : onStats ? <StatsBoard />
+          : onVegas ? <VegasBoard />
+          : <DraftView />}
       </main>
     </div>
   )

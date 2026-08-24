@@ -1,12 +1,10 @@
-import raw from '../data/vegas.json'
-import type { VegasData, VegasMarket, VegasPlayer } from '../types'
+import type { VegasMarket } from '../types'
 
-export const VEGAS = raw as unknown as VegasData
-
-export const vegasFor = (playerId: string): VegasPlayer | null => VEGAS.players[playerId] ?? null
-
-/** How many players the books actually posted lines for. */
-export const VEGAS_POOL = Object.keys(VEGAS.players).length
+/**
+ * Helpers over the Vegas data. The data itself lives in the useLive store —
+ * bundled at build time, replaceable by the in-app refresh — so components
+ * read it from there rather than from a static import.
+ */
 
 /** The number to show for a market: the posted line, or the estimate that stands in for one. */
 export const mktValue = (m: VegasMarket | undefined): number | null =>
