@@ -4,14 +4,20 @@ import { DraftView } from './components/DraftView'
 import { StatsBoard } from './components/StatsBoard'
 import { VegasBoard } from './components/VegasBoard'
 import { GodfatherBoard } from './components/GodfatherBoard'
-import { DATA, useStore } from './store/useStore'
+import { DATA, useStore, type View } from './store/useStore'
 
-/** The workspaces. The luck table and Vegas view are lookups, not places you live. */
-const PRIMARY = [
+/**
+ * One nav for everything. The first three are workspaces; after the divider
+ * come the two data lookups. Same control, same behavior — no more side
+ * buttons that toggle to "Close".
+ */
+const TABS: { id: View; label: string; short: string; data?: boolean }[] = [
   { id: 'board', label: 'Big Board', short: 'Board' },
   { id: 'god', label: 'Godfather', short: 'Don' },
   { id: 'draft', label: 'Mock Draft', short: 'Draft' },
-] as const
+  { id: 'vegas', label: 'Vegas', short: 'Vegas', data: true },
+  { id: 'stats', label: 'Luck', short: 'Luck', data: true },
+]
 
 export default function App() {
   const view = useStore((s) => s.view)
@@ -21,8 +27,6 @@ export default function App() {
 
   const tiers = useMemo(() => items.filter((i) => i.kind === 'tier').length, [items])
   const players = items.length - tiers
-  const onStats = view === 'stats'
-  const onVegas = view === 'vegas'
 
   return (
     <div className="app">
@@ -36,16 +40,18 @@ export default function App() {
         </div>
 
         <nav className="tabs">
-          {PRIMARY.map((tab) => (
-            <button
-              key={tab.id}
-              className={view === tab.id ? 'on' : ''}
-              onClick={() => setView(tab.id)}
-            >
-              <span className="tab-full">{tab.label}</span>
-              <span className="tab-short">{tab.short}</span>
-              {tab.id === 'draft' && picks.length > 0 && <span className="badge">{picks.length}</span>}
-            </button>
+          {TABS.map((tab, i) => (
+            <span key={tab.id} className="tab-slot">
+              {i > 0 && TABS[i - 1].data !== tab.data && <span className="tab-sep" aria-hidden />}
+              <button
+                className={view === tab.id ? 'on' : ''}
+                onClick={() => setView(tab.id)}
+              >
+                <span className="tab-full">{tab.label}</span>
+                <span className="tab-short">{tab.short}</span>
+                {tab.id === 'draft' && picks.length > 0 && <span className="badge">{picks.length}</span>}
+              </button>
+            </span>
           ))}
         </nav>
 
@@ -59,58 +65,15 @@ export default function App() {
             {String(DATA.source.meta.end_date ?? '').slice(5)}
           </span>
         </div>
-
-        <button
-          className={`btn ghost sm side-link ${onVegas ? 'on' : ''}`}
-          onClick={() => setView(onVegas ? 'board' : 'vegas')}
-          title="What the sportsbooks' season-long lines say the rankings should be, against ADP and your board"
-        >
-          <VegasIcon />
-          <span>{onVegas ? 'Close' : 'Vegas'}</span>
-        </button>
-
-        <button
-          className={`btn ghost sm side-link ${onStats ? 'on' : ''}`}
-          onClick={() => setView(onStats ? 'board' : 'stats')}
-          title="Last season measured raw and adjusted, as one sortable table"
-        >
-          <LuckIcon />
-          <span>{onStats ? 'Close' : 'Luck table'}</span>
-        </button>
       </header>
 
       <main>
         {view === 'board' ? <BigBoard />
           : view === 'god' ? <GodfatherBoard />
-          : onStats ? <StatsBoard />
-          : onVegas ? <VegasBoard />
+          : view === 'stats' ? <StatsBoard />
+          : view === 'vegas' ? <VegasBoard />
           : <DraftView />}
       </main>
     </div>
-  )
-}
-
-function VegasIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden>
-      <rect x="1.5" y="1.5" width="13" height="13" rx="3" stroke="currentColor" strokeWidth="1.6" />
-      <circle cx="5.4" cy="5.4" r="1.15" fill="currentColor" />
-      <circle cx="10.6" cy="10.6" r="1.15" fill="currentColor" />
-    </svg>
-  )
-}
-
-function LuckIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden>
-      <path
-        d="M1.5 11.5 5.5 6.5l3 2.5 5-7"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M10.5 3h3v3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   )
 }

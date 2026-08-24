@@ -22,9 +22,11 @@ interface Row {
   missing: number
   /** ADP rank over the pool — VAL's other half; the column shows the raw ADP. */
   adpR: number
+  /** Each signal's percentile, for the dots on the row's track. Null = signal is blind. */
+  sig: { you: number; adp: number; vgs: number | null; lck: number | null }
 }
 
-type Key = keyof Omit<Row, 'player' | 'score' | 'missing'>
+type Key = keyof Omit<Row, 'player' | 'score' | 'missing' | 'sig' | 'adpR'>
 
 interface Column {
   key: Key
@@ -45,12 +47,14 @@ const COLUMNS: Column[] = [
 ]
 
 const GROUPS = [
-  { label: 'Inputs', from: 2, to: 5 },
-  { label: 'Verdict', from: 6, to: 7 },
+  { label: 'Inputs', from: 3, to: 6 },
+  { label: 'Verdict', from: 7, to: 8 },
 ]
 
 const W_LABELS: Record<keyof GodWeights, string> = { vegas: 'Vegas', you: 'You', adp: 'ADP', luck: 'Luck' }
 const W_KEYS = ['vegas', 'you', 'adp', 'luck'] as const
+/** The weight sliders and the row dots speak the same color. */
+const W_DOT: Record<keyof GodWeights, string> = { vegas: 'c-vgs', you: 'c-you', adp: 'c-adp', luck: 'c-lck' }
 
 const fmt = (v: number | null, digits = 0, signed = false) => {
   if (v == null) return '—'
@@ -134,6 +138,13 @@ export function GodfatherBoard() {
       const v = vegas.players[player.id]
       const lck = luckRank.get(player.id) ?? null
 
+      const sig = {
+        you: pct(you, n),
+        adp: pct(adpR, n),
+        vgs: v ? pct(v.rank, vegasPool) : null,
+        lck: lck != null ? pct(lck, luckPool) : null,
+      }
+
       // Weighted mean of the percentiles each signal puts the player at; a
       // signal that doesn't exist for him hands its weight to the others.
       let num = 0
@@ -143,10 +154,10 @@ export function GodfatherBoard() {
         num += w * p
         den += w
       }
-      add(weights.you, pct(you, n))
-      add(weights.adp, pct(adpR, n))
-      add(weights.vegas, v ? pct(v.rank, vegasPool) : null)
-      add(weights.luck, lck != null ? pct(lck, luckPool) : null)
+      add(weights.you, sig.you)
+      add(weights.adp, sig.adp)
+      add(weights.vegas, sig.vgs)
+      add(weights.luck, sig.lck)
 
       return {
         player,
@@ -160,6 +171,7 @@ export function GodfatherBoard() {
         score: den > 0 ? num / den : 1,
         missing: (v ? 0 : 1) + (lck == null ? 1 : 0),
         adpR,
+        sig,
       }
     })
 
@@ -254,6 +266,7 @@ export function GodfatherBoard() {
           <span className="gw-title">Weights</span>
           {W_KEYS.map((k) => (
             <label key={k} className="gw" title={`How much ${W_LABELS[k]} counts in the mix`}>
+              <i className={`gw-dot ${W_DOT[k]}`} aria-hidden />
               <span className="gw-label">{W_LABELS[k]}</span>
               <input
                 type="range"
@@ -274,6 +287,7 @@ export function GodfatherBoard() {
         <div className="stats-wrap god-wrap">
           <div className="stats-head">
             <span className="sh-player">Player</span>
+            <span className="sh-sig-head" style={{ gridRow: 2 }}>Signals</span>
             {GROUPS.map((g) => (
               <span key={g.label} className="sh-group" style={{ gridColumn: `${g.from} / ${g.to + 1}` }}>
                 {g.label}
@@ -308,7 +322,7 @@ export function GodfatherBoard() {
                   onClick={() => select(p.id)}
                 >
                   <span className="sh-player srow-player">
-                    <Avatar player={p} size={26} />
+                    <Avatar player={p} size={36} />
                     <span className="srow-id">
                       <span className="srow-name">
                         {p.name}
@@ -324,6 +338,28 @@ export function GodfatherBoard() {
                         )}
                       </span>
                     </span>
+                  </span>
+
+                  <span
+                    className="sh-track"
+                    aria-hidden
+                    title={[
+                      `You #${r.you}`,
+                      `ADP #${r.adpR}`,
+                      r.vgs != null ? `Vegas #${r.vgs}` : 'Vegas — no lines',
+                      r.lck != null ? `Luck #${r.lck}` : 'Luck — no last season',
+                    ].join(' · ')}
+                  >
+                    {([['you', r.sig.you], ['adp', r.sig.adp], ['vgs', r.sig.vgs], ['lck', r.sig.lck]] as const).map(
+                      ([k, v]) =>
+                        v != null && (
+                          <i
+                            key={k}
+                            className={`sig c-${k}`}
+                            style={{ left: `${Math.max(3, Math.min(97, v * 100))}%` }}
+                          />
+                        ),
+                    )}
                   </span>
 
                   <span className="sh-num dim" data-label="You">{fmt(r.you)}</span>

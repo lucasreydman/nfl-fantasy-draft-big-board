@@ -16,6 +16,8 @@ interface Row {
   boardPosRank: number
   adp: number
   fpts: number
+  /** Points over replacement — what the bar draws. */
+  vval: number
   estPts: number
   vRank: number
   vPosRank: number
@@ -28,7 +30,7 @@ interface Row {
   value: number
 }
 
-type Key = keyof Omit<Row, 'player'>
+type Key = keyof Omit<Row, 'player' | 'vval'>
 
 interface Column {
   key: Key
@@ -51,9 +53,9 @@ const COLUMNS: Column[] = [
 ]
 
 const GROUPS = [
-  { label: 'Market', from: 2, to: 3 },
-  { label: 'Vegas', from: 4, to: 7 },
-  { label: 'Blend', from: 8, to: 9 },
+  { label: 'Market', from: 3, to: 4 },
+  { label: 'Vegas', from: 5, to: 8 },
+  { label: 'Blend', from: 9, to: 10 },
 ]
 
 const fmt = (v: number | null, digits = 0, signed = false) => {
@@ -120,6 +122,7 @@ export function VegasBoard() {
         boardPosRank: posRank.get(player.id) ?? 0,
         adp: liveAdp(adpMap, player),
         fpts: v.fpts,
+        vval: v.val,
         estPts: v.estPts,
         vRank: v.rank,
         vPosRank: v.posRank,
@@ -179,6 +182,7 @@ export function VegasBoard() {
 
   const selected = selectedId ? PLAYERS.find((p) => p.id === selectedId) ?? null : null
   const books = Object.entries(vegas.books).sort((a, b) => b[1] - a[1]).map(([n]) => n)
+  const maxVval = useMemo(() => Math.max(1, ...rows.map((r) => r.vval)), [rows])
 
   return (
     <div className="board-layout">
@@ -236,6 +240,7 @@ export function VegasBoard() {
         <div className="stats-wrap vegas-wrap">
           <div className="stats-head">
             <span className="sh-player">Player</span>
+            <span style={{ gridRow: 2 }} aria-hidden />
             {GROUPS.map((g) => (
               <span key={g.label} className="sh-group" style={{ gridColumn: `${g.from} / ${g.to + 1}` }}>
                 {g.label}
@@ -271,7 +276,7 @@ export function VegasBoard() {
                   onClick={() => select(p.id)}
                 >
                   <span className="sh-player srow-player">
-                    <Avatar player={p} size={26} />
+                    <Avatar player={p} size={36} />
                     <span className="srow-id">
                       <span className="srow-name">
                         {p.name}
@@ -286,6 +291,15 @@ export function VegasBoard() {
                           </span>
                         )}
                       </span>
+                    </span>
+                  </span>
+
+                  <span className="sh-bar" aria-hidden title={`${r.vval > 0 ? '+' : ''}${r.vval.toFixed(0)} points over a replacement ${p.pos}`}>
+                    <span className="bar-track">
+                      <span
+                        className="bar-fill"
+                        style={{ width: `${Math.max(0, Math.min(100, (r.vval / maxVval) * 100))}%` }}
+                      />
                     </span>
                   </span>
 

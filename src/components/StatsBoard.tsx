@@ -250,7 +250,7 @@ export function StatsBoard() {
                   onClick={() => select(p.id)}
                 >
                   <span className="sh-player srow-player">
-                    <Avatar player={p} size={26} />
+                    <Avatar player={p} size={36} />
                     <span className="srow-id">
                       <span className="srow-name">
                         {p.name}
