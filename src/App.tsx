@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { BigBoard } from './components/BigBoard'
 import { DraftView } from './components/DraftView'
 import { StatsBoard } from './components/StatsBoard'
+import { VegasBoard } from './components/VegasBoard'
 import { DATA, useStore } from './store/useStore'
 
 /** The two things the app is for. The luck table is a lookup, not a third workspace. */
@@ -19,6 +20,7 @@ export default function App() {
   const tiers = useMemo(() => items.filter((i) => i.kind === 'tier').length, [items])
   const players = items.length - tiers
   const onStats = view === 'stats'
+  const onVegas = view === 'vegas'
 
   return (
     <div className="app">
@@ -57,6 +59,15 @@ export default function App() {
         </div>
 
         <button
+          className={`btn ghost sm side-link ${onVegas ? 'on' : ''}`}
+          onClick={() => setView(onVegas ? 'board' : 'vegas')}
+          title="What the sportsbooks' season-long lines say the rankings should be, against ADP and your board"
+        >
+          <VegasIcon />
+          <span>{onVegas ? 'Close' : 'Vegas'}</span>
+        </button>
+
+        <button
           className={`btn ghost sm side-link ${onStats ? 'on' : ''}`}
           onClick={() => setView(onStats ? 'board' : 'stats')}
           title="Last season measured raw and adjusted, as one sortable table"
@@ -66,8 +77,20 @@ export default function App() {
         </button>
       </header>
 
-      <main>{view === 'board' ? <BigBoard /> : onStats ? <StatsBoard /> : <DraftView />}</main>
+      <main>
+        {view === 'board' ? <BigBoard /> : onStats ? <StatsBoard /> : onVegas ? <VegasBoard /> : <DraftView />}
+      </main>
     </div>
+  )
+}
+
+function VegasIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <rect x="1.5" y="1.5" width="13" height="13" rx="3" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="5.4" cy="5.4" r="1.15" fill="currentColor" />
+      <circle cx="10.6" cy="10.6" r="1.15" fill="currentColor" />
+    </svg>
   )
 }
 

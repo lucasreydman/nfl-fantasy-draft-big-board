@@ -20,6 +20,20 @@ Skill positions only — **no kickers, no team defenses**, anywhere in the app.
 - Set a player's rank directly, nudge with the arrows, or drag. Export/import the board as JSON.
 - **Cut and add players.** The `✕` on a row (or the button on the player card) takes a player off the board entirely — handy for the handcuffs and kickers you'll never draft. Everyone you've cut collects behind the **+ Add player** search under the list; adding one puts him back at the bottom, ready to be dragged wherever he belongs. Cuts survive a data refresh, so a Sleeper update never quietly puts them back.
 
+**Vegas Board** — what the sportsbooks' season-long lines say the rankings should be, held up against ADP and against you.
+
+Sportsbooks hang over/under lines on every stat this league pays for — passing/rushing/receiving yards, touchdowns, receptions — and those lines are real money, not content. The board pulls the season-long markets from [BettingPros](https://www.bettingpros.com) (DraftKings, Caesars, BetMGM, BetRivers, Hard Rock, bet365 and more), takes the **median line across books**, shades each one by its juice (a -130 over means the true number sits above the posted line — de-vig the two prices and shift by the implied z under the market's spread), and scores the result under this league's exact rules: full PPR, 4-point passing TDs, **-2 per interception**.
+
+- **Raw points can't rank a one-QB league**, so the Vegas rank is **points over replacement** — what a 10-team, 10-starter league leaves on waivers (roughly the QB12, RB28, WR32, TE12, measured from the props pool itself). That's why Josh Allen's league-best 337 implied points rank him 18th overall instead of 1st.
+- **Δ ADP** and **Δ YOU** are rank-vs-rank over the same covered pool (~160 players with lines), so the deltas are honest: +12 on Δ ADP means the books rank him twelve spots above where drafters take him.
+- **The blend slider** mixes your board into the Vegas board at any weight, ranks the mix, and **VAL** compares that back to ADP — positive means the room lets you draft him later than the blend says he should go, negative means he'd be a reach. **Apply to board** writes the blended order onto the big board by permuting only the covered players among the slots they already occupy: your tiers and everyone without a line stay exactly where they were.
+- Markets the books didn't post are filled honestly and marked: a `~est` chip on the row, a `~` on the number. Receptions missing but receiving yards posted → the position's yards-per-catch, fitted from players with both lines. No interception market exists at all, so INTs scale the player's projected rate to the passing volume Vegas gives him. A player with no line in his position's core market isn't ranked at all.
+- The player card carries the full set: every posted line (median, book count), the implied points, and how far the books sit from the drafting public on him.
+
+```bash
+npm run fetch:vegas   # refresh the lines (run fetch:players first — it matches against players.json)
+```
+
 **Luck Table** — the whole pool as one sortable table, last season measured two ways.
 
 Twelve columns: your rank, ADP, games (clean/played), raw PPG, adjusted PPG, **Δ PPG**, luck-adjusted PPG, **Δ LUCK**, raw points, adjusted 17-game pace, and **Δ PTS**. Every header sorts; the position tabs, search box, *Adjusted only*, and *Hide drafted* filter the whole thing; clicking a row opens the same player card the big board uses. The position tabs carry a **FLEX** option — every flex-eligible player, which is everyone but the quarterbacks — and they are one shared control, so a filter set here is still set on the big board and in the mock draft.

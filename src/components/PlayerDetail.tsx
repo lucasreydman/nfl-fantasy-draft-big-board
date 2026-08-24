@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import type { AdjustedLine, Benchmark, Player, Pos, StatLine } from '../types'
+import type { AdjustedLine, Benchmark, Player, Pos, StatLine, VegasMarket } from '../types'
 import { POS_COLOR, fmtAdp, ordinal, teamLogo } from '../lib/format'
+import { VEGAS, VEGAS_POOL, vegasFor } from '../lib/vegas'
 import { DATA, useStore } from '../store/useStore'
 import { Avatar } from './Avatar'
 
@@ -164,6 +165,27 @@ function StatLines({ s, pos }: { s: StatLine; pos: Pos }) {
   return <div className="statlines">{LINE_ORDER[pos].map((k) => lines[k])}</div>
 }
 
+/**
+ * A posted line prints as itself; a market no book posted prints its estimate
+ * with a tilde, so the reader knows which numbers were actually bet on.
+ */
+const mkt = (m: VegasMarket | undefined, unit: string, digits = 0) => {
+  if (!m) return null
+  if (m.est != null) return `~${m.est.toFixed(digits)} ${unit}`
+  return `${(m.line ?? 0).toLocaleString(undefined, { maximumFractionDigits: 1 })} ${unit}`
+}
+
+/** Season lines grouped the way the stat rows already read: pass, rush, rec. */
+const vegasLines = (v: NonNullable<ReturnType<typeof vegasFor>>) => ({
+  pass: [
+    mkt(v.mkts.passYd, 'yd'),
+    mkt(v.mkts.passTd, 'TD', 1),
+    mkt(v.mkts.passInt, 'INT', 1),
+  ],
+  rush: [mkt(v.mkts.rushYd, 'yd'), mkt(v.mkts.rushTd, 'TD', 1)],
+  rec: [mkt(v.mkts.rec, 'rec'), mkt(v.mkts.recYd, 'yd'), mkt(v.mkts.recTd, 'TD', 1)],
+})
+
 const weekList = (list: { w: number }[]) => list.map((d) => `W${d.w}`).join(', ')
 
 /** Plain English for what the adjusted line left out, so the reader can disagree with it. */
@@ -200,6 +222,11 @@ export function PlayerDetail({
 
   // A positive split means Sleeper leagues take him earlier than FFC's mocks do.
   const marketSplit = player.adpFfc == null ? null : player.adpFfc - player.adp
+
+  const vegas = vegasFor(player.id)
+  // Rank-vs-rank over the covered pool: positive means the books are higher on him than ADP is.
+  const vegasEdge = vegas ? vegas.adpRank - vegas.rank : null
+  const vLines = vegas ? vegasLines(vegas) : null
 
   // How the projection reads against what he actually did — the number a drafter is really weighing.
   const ppgDelta = proj?.ppg != null && line?.ppg != null ? proj.ppg - line.ppg : null
@@ -300,6 +327,35 @@ export function PlayerDetail({
           />
         </div>
       </Section>
+
+      {vegas && vLines && (
+        <Section
+          title="Vegas season lines"
+          note={<span className="rank-chip">{player.pos}{vegas.posRank} by the books</span>}
+        >
+          <div className="stat-grid">
+            <Stat label="Implied pts" value={n1(vegas.fpts)} />
+            <Stat label="Vegas rank" value={`#${vegas.rank} of ${VEGAS_POOL}`} />
+            <Stat label="ADP rank" value={`#${vegas.adpRank}`} />
+          </div>
+          {vegasEdge != null && Math.abs(vegasEdge) >= 5 && (
+            <div className={`trend ${vegasEdge > 0 ? 'up' : 'down'}`}>
+              {vegasEdge > 0 ? '▲' : '▼'} Books rank him {Math.abs(vegasEdge)} spots{' '}
+              {vegasEdge > 0 ? 'above' : 'below'} where this pool drafts him
+            </div>
+          )}
+          <div className="statlines">
+            {LINE_ORDER[player.pos].map((k) => (
+              <Line key={k} label={{ pass: 'Pass', rush: 'Rush', rec: 'Rec' }[k]} parts={vLines[k]} />
+            ))}
+          </div>
+          <p className="usage-key">
+            Season-long over/unders, median across the books, scored as {VEGAS.scoring}. A ~ number is a market
+            no book posted, estimated from his other lines. Rank is points over what a 10-team league leaves on
+            waivers.
+          </p>
+        </Section>
+      )}
 
       {proj && (
         <Section

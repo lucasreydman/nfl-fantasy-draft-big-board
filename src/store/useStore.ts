@@ -29,7 +29,7 @@ const renumberTiers = (items: BoardItem[]): BoardItem[] => {
   })
 }
 
-export type View = 'board' | 'stats' | 'draft'
+export type View = 'board' | 'stats' | 'draft' | 'vegas'
 export type BoardMode = 'overall' | 'positional'
 export type CardSize = 'sm' | 'md' | 'lg'
 /** What the CPU teams value: the public market, or your own rankings. */
@@ -49,6 +49,8 @@ interface State {
   posFilter: PosFilter
   query: string
   hideDrafted: boolean
+  /** Weight on Vegas in the blended board, 0–100. 0 is your board; 100 is the books'. */
+  vegasBlend: number
 
   teams: number
   rounds: number
@@ -66,6 +68,7 @@ interface State {
   setPosFilter: (p: PosFilter) => void
   setQuery: (q: string) => void
   setHideDrafted: (v: boolean) => void
+  setVegasBlend: (n: number) => void
   select: (id: string | null) => void
 
   reorder: (activeId: string, overId: string) => void
@@ -84,6 +87,11 @@ interface State {
   removeTier: (id: string) => void
   autoTier: (sensitivity: number) => void
   clearTiers: () => void
+  /**
+   * Reorders the named players into the given relative order, using only the
+   * board slots they already occupy — tiers and every other player stay put.
+   */
+  applyOrder: (orderedIds: string[]) => void
   resetBoard: () => void
   importBoard: (items: BoardItem[]) => void
 
@@ -113,6 +121,7 @@ export const useStore = create<State>()(
       posFilter: 'ALL',
       query: '',
       hideDrafted: true,
+      vegasBlend: 50,
 
       teams: 10,
       rounds: 15,
@@ -130,6 +139,7 @@ export const useStore = create<State>()(
       setPosFilter: (posFilter) => set({ posFilter }),
       setQuery: (query) => set({ query }),
       setHideDrafted: (hideDrafted) => set({ hideDrafted }),
+      setVegasBlend: (vegasBlend) => set({ vegasBlend }),
       select: (selectedId) => set({ selectedId }),
 
       reorder: (activeId, overId) =>
@@ -272,6 +282,21 @@ export const useStore = create<State>()(
         set((s) => ({ items: renumberTiers(s.items.filter((i) => i.id !== id)) })),
 
       clearTiers: () => set((s) => ({ items: s.items.filter((i) => i.kind === 'player') })),
+
+      applyOrder: (orderedIds) =>
+        set((s) => {
+          const wanted = new Set(orderedIds)
+          const queue = orderedIds.filter((id) =>
+            s.items.some((i) => i.kind === 'player' && i.id === id),
+          )
+          let next = 0
+          const items = s.items.map((i) =>
+            i.kind === 'player' && wanted.has(i.id)
+              ? ({ kind: 'player', id: queue[next++] } as BoardItem)
+              : i,
+          )
+          return { items }
+        }),
 
       /**
        * Cuts tiers where the ADP gap to the next player is unusually large for
@@ -417,6 +442,7 @@ export const useStore = create<State>()(
         showPickLines: s.showPickLines,
         statMode: s.statMode,
         hideDrafted: s.hideDrafted,
+        vegasBlend: s.vegasBlend,
       }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<State>

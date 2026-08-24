@@ -165,6 +165,56 @@ export interface PlayerData {
   players: Player[]
 }
 
+/** The season-long stats sportsbooks hang over/under lines on. */
+export type VegasMarketKey =
+  | 'passYd' | 'passTd' | 'passInt'
+  | 'rushYd' | 'rushTd'
+  | 'rec' | 'recYd' | 'recTd'
+
+/**
+ * One market for one player. Either the books posted a line — `line` is the
+ * median across them, `mean` the juice-shaded expectation — or nobody did and
+ * `est` carries the estimate that filled the hole.
+ */
+export interface VegasMarket {
+  line?: number
+  mean?: number
+  /** How many real sportsbooks quote it. */
+  n?: number
+  lo?: number
+  hi?: number
+  /** Where the first book opened, when it differs from today's line. */
+  open?: number
+  est?: number
+}
+
+export interface VegasPlayer {
+  /** Fantasy points the lines imply under this league's scoring. */
+  fpts: number
+  ppg: number
+  /** Points that came from estimated (unposted) markets rather than real lines. */
+  estPts: number
+  /** Points over the position's replacement level — what the overall rank sorts by. */
+  val: number
+  /** Overall rank by value over replacement, among the covered pool. */
+  rank: number
+  posRank: number
+  /** ADP rank within the same covered pool, so the comparison is like for like. */
+  adpRank: number
+  adpPosRank: number
+  mkts: Partial<Record<VegasMarketKey, VegasMarket>>
+}
+
+export interface VegasData {
+  season: number
+  generatedAt: string
+  source: string
+  books: Record<string, number>
+  scoring: string
+  replacement: { slots: Record<Pos, number>; pts: Record<Pos, number> }
+  players: Record<string, VegasPlayer>
+}
+
 export type BoardItem =
   | { kind: 'player'; id: string }
   | { kind: 'tier'; id: string; name: string; color: string }

@@ -811,6 +811,22 @@ select {
 .srow .spread.up { color: var(--accent); background: #2fe08b16; }
 .srow .spread.down { color: #ff8b6b; background: #ff8b6b16; }
 
+/* ---------- vegas board ---------- */
+
+/* Same table system as the luck table, one column narrower. */
+.vegas-wrap {
+  --stat-cols: minmax(150px, 1fr) 38px 48px 54px 44px 58px 58px 48px 58px;
+}
+
+.blend-slider { gap: 6px; }
+.blend-slider input[type='range'] { width: 110px; accent-color: var(--accent); }
+.blend-pct {
+  min-width: 34px;
+  font-variant-numeric: tabular-nums;
+  color: var(--dim);
+  font-size: 11px;
+}
+
 .stats-key {
   margin: 0;
   padding: 9px 16px 11px;
