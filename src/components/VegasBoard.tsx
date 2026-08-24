@@ -308,7 +308,9 @@ export function VegasBoard() {
           </div>
 
           <p className="stats-key">
-            Season-long over/unders from {books.slice(0, 5).join(', ')} and {books.length - 5} more, scored as{' '}
+            Season-long over/unders as of {new Date(VEGAS.generatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })},
+            from {books.slice(0, 5).join(', ')} and {books.length - 5} more — only lines still on the board count,
+            so a player the books pulled after an injury drops out rather than keeping his old number. Scored as{' '}
             {VEGAS.scoring}. <b>VGS</b> ranks by points over a 10-team replacement level, so quarterbacks slot
             where a one-QB league actually drafts them. <b>Δ ADP</b> and <b>Δ YOU</b> are rank-vs-rank over the
             same {Object.keys(VEGAS.players).length}-player pool — positive means the books are higher on him.{' '}

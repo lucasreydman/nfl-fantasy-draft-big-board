@@ -25,16 +25,28 @@ const MARKETS = {
   passTd: 304, rushTd: 305, recTd: 306, rec: 330,
 }
 
-/**
- * Books whose lines count toward the market mean. Pick'em apps (PrizePicks,
- * Underdog, Sleeper) and prediction markets (Kalshi, Polymarket) are excluded —
- * they copy or lag the books rather than making their own market.
- */
+/** Books whose lines count toward the market mean. */
 const REAL_BOOKS = {
   12: 'DraftKings', 10: 'FanDuel', 19: 'BetMGM', 13: 'Caesars', 24: 'bet365',
   18: 'BetRivers', 49: 'Hard Rock', 33: 'theScore Bet', 14: 'Fanatics',
   15: 'SugarHouse', 27: 'PartyCasino', 32: 'Borgata', 26: 'Tipico',
 }
+
+/**
+ * Second tier, used only when no sportsbook quotes the market: licensed pick'em
+ * apps. Their lines are real current markets — they pull injured players like a
+ * book does — just softer ones. Prediction markets (Kalshi, Polymarket) are
+ * never used: a threshold contract at +1900 is a longshot bet, not a median,
+ * and BettingPros' own "consensus" will happily echo one — which is why the
+ * consensus row isn't trusted at all.
+ */
+const PICKEM_BOOKS = {
+  37: 'PrizePicks', 36: 'Underdog', 55: 'Underdog Sportsbook', 63: 'Sleeper',
+  53: 'Dabble', 45: 'Betr', 39: 'Fliff',
+}
+
+/** A line nobody has touched in this long is frozen data, not a market. */
+const MAX_AGE_DAYS = 10
 
 /**
  * How spread out a season outcome is around its line, as a fraction of the line.
@@ -96,41 +108,56 @@ async function fetchMarket(id, season) {
   return offers
 }
 
-const mainLine = (selection, bookId) =>
-  selection?.books?.find((b) => b.id === bookId)?.lines?.find((l) => l.main && l.active && !l.is_off) ?? null
+const now = Date.now()
+const fresh = (l) => now - Date.parse(`${l.updated?.replace(' ', 'T')}Z`) < MAX_AGE_DAYS * 86400e3
 
-/** One offer -> {line, mean, n, lo, hi, open} across the real books. */
+/** A book's current line: on the board, marked main, and touched recently. */
+const mainLine = (selection, bookId) =>
+  selection?.books?.find((b) => b.id === bookId)?.lines
+    ?.find((l) => l.main && l.active && !l.is_off && fresh(l)) ?? null
+
+/** Two-way juice lives around even money; a price far outside it isn't an O/U. */
+const saneCost = (cost) => cost == null || (cost >= -250 && cost <= 250)
+
+function collect(over, under, bookIds, cv, tally) {
+  const lines = []
+  const means = []
+  for (const [id, name] of Object.entries(bookIds)) {
+    const o = mainLine(over, Number(id))
+    if (!o || !saneCost(o.cost)) continue
+    const u = mainLine(under, Number(id))
+    // Only pair the costs when both sides quote the same number.
+    const underCost = u && u.line === o.line ? u.cost : null
+    lines.push(o.line)
+    means.push(bookMean(o.line, o.cost, underCost, cv))
+    if (tally) tally[name] = (tally[name] ?? 0) + 1
+  }
+  return { lines, means }
+}
+
+/** One offer -> {line, mean, n, lo, hi, open} across the books still quoting it. */
 function summarize(offer, cv, bookTally) {
   const over = offer.selections?.find((s) => s.selection === 'over')
   const under = offer.selections?.find((s) => s.selection === 'under')
   if (!over) return null
 
-  const lines = []
-  const means = []
-  for (const id of Object.keys(REAL_BOOKS).map(Number)) {
-    const o = mainLine(over, id)
-    if (!o) continue
-    const u = mainLine(under, id)
-    // Only pair the costs when both sides quote the same number.
-    const underCost = u && u.line === o.line ? u.cost : null
-    lines.push(o.line)
-    means.push(bookMean(o.line, o.cost, underCost, cv))
-    bookTally[REAL_BOOKS[id]] = (bookTally[REAL_BOOKS[id]] ?? 0) + 1
-  }
+  let { lines, means } = collect(over, under, REAL_BOOKS, cv, bookTally)
+  let pickem = false
 
-  // No real book carries it — fall back to BettingPros' own consensus line.
+  // Every sportsbook has taken it off the board. A pick'em app still quoting it
+  // is a live market worth keeping; nothing quoting it means the number is gone
+  // — an injured player's stale line must read as no line, not as the old one.
   if (!lines.length) {
-    const c = mainLine(over, 0)
-    if (!c) return null
-    const cu = mainLine(under, 0)
-    lines.push(c.line)
-    means.push(bookMean(c.line, c.cost, cu && cu.line === c.line ? cu.cost : null, cv))
+    ;({ lines, means } = collect(over, under, PICKEM_BOOKS, cv, null))
+    if (!lines.length) return null
+    pickem = true
   }
 
   return {
     line: median(lines),
     mean: median(means),
-    n: lines.length,
+    n: pickem ? 0 : lines.length,
+    ...(pickem ? { pk: true } : {}),
     lo: Math.min(...lines),
     hi: Math.max(...lines),
     open: over.opening_line?.line ?? null,
@@ -300,6 +327,7 @@ for (const { player, mkts } of matched.values()) {
       line: s.line,
       mean: r1(s.mean),
       n: s.n,
+      ...(s.pk ? { pk: true } : {}),
       ...(s.lo !== s.hi ? { lo: s.lo, hi: s.hi } : {}),
       ...(s.open != null && s.open !== s.line ? { open: s.open } : {}),
     }

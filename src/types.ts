@@ -179,8 +179,10 @@ export type VegasMarketKey =
 export interface VegasMarket {
   line?: number
   mean?: number
-  /** How many real sportsbooks quote it. */
+  /** How many real sportsbooks quote it. 0 with `pk` means pick'em apps only. */
   n?: number
+  /** No sportsbook still quotes it — the line is from licensed pick'em apps. */
+  pk?: boolean
   lo?: number
   hi?: number
   /** Where the first book opened, when it differs from today's line. */
