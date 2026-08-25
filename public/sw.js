@@ -7,7 +7,7 @@
  * the phone is offline. That way an install picks up a deploy on the next launch instead
  * of pinning itself to whatever it saw first.
  */
-const CACHE = 'big-board-v1'
+const CACHE = 'big-board-v2'
 /*
  * ignoreVary matters more than it looks. Vite marks its module script and stylesheet
  * `crossorigin`, so the browser sends an Origin header on those two requests and the
@@ -48,6 +48,8 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url)
   if (url.origin !== self.location.origin) return // headshots and fonts keep their own rules
+  // Live data is never cached — the refresh button must always mean a refresh.
+  if (url.pathname.startsWith('/api/')) return
 
   if (request.mode === 'navigate') {
     event.respondWith(

@@ -440,6 +440,11 @@ select {
      that has a plain alternative (drag, or set the rank), so it's the one to go —
      the player card still carries it. */
   .row-actions .row-icon-bottom { display: none; }
+
+  /* The luck table's twelve columns need a slimmer template beside the side panel. */
+  .stats-wrap { --stat-cols: minmax(145px, 1fr) 34px 44px 46px 50px 58px 52px 60px 54px 54px 60px 54px; --stat-gap: 8px; }
+  .vegas-wrap { --stat-cols: minmax(145px, 1fr) minmax(55px, 0.4fr) 36px 46px 52px 42px 54px 54px 46px 54px; }
+  .god-wrap { --stat-cols: minmax(145px, 1fr) minmax(80px, 0.5fr) 42px 50px 42px 42px 46px 56px; }
 }
 
 /* pick lines: static markers for where your picks land */
@@ -1117,6 +1122,41 @@ select {
   .draft-bottom { grid-template-columns: minmax(0, 1fr) 260px; }
 }
 
+/* ---------- tablets ---------- */
+
+/*
+ * An iPad gets the real tables — that's what a draft-day reference needs — but
+ * not the fixed side panel, which would squeeze twelve columns into half the
+ * screen. The full width belongs to the board; the player card becomes the
+ * same pull-up sheet a phone uses.
+ */
+@media (max-width: 1080px) {
+  .board-layout { grid-template-columns: minmax(0, 1fr); }
+
+  .detail {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 40;
+    height: min(88dvh, 100%);
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    border-radius: 16px 16px 0 0;
+    padding: 16px 14px calc(20px + env(safe-area-inset-bottom));
+    box-shadow: 0 -20px 60px -20px #000c;
+    animation: sheet-up 0.18s ease-out;
+  }
+  .detail-empty { display: none; }
+  .detail-close { display: grid; }
+
+  .stats-wrap { --stat-cols: minmax(135px, 1fr) 32px 42px 42px 46px 52px 48px 54px 50px 50px 52px 50px; --stat-gap: 6px; }
+  .vegas-wrap { --stat-cols: minmax(135px, 1fr) minmax(50px, 0.35fr) 34px 44px 50px 40px 52px 52px 44px 52px; }
+  .god-wrap { --stat-cols: minmax(135px, 1fr) minmax(60px, 0.4fr) 40px 48px 40px 40px 44px 54px; }
+  .stats-head { padding: 9px 25px 7px 21px; }
+  .stats-body { padding: 8px 10px 12px; }
+
+  .draft-board { overflow-x: auto; }
+}
+
 /* ---------- phones ---------- */
 
 /*
@@ -1158,7 +1198,6 @@ select {
   .auto-tier input[type='range'] { width: 70px; }
 
   /* A phone gets the columns you'd actually draft from. */
-  .board-layout { grid-template-columns: minmax(0, 1fr); }
   .list-wrap {
     --row-cols: 16px 26px auto minmax(0, 1fr) auto 46px 42px;
     --row-gap: 8px;
@@ -1172,22 +1211,7 @@ select {
 
   .positional { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
 
-  /* The card stops being a column and becomes a sheet you pull over the list. */
-  .detail {
-    position: fixed;
-    left: 0; right: 0; bottom: 0;
-    z-index: 40;
-    height: min(88dvh, 100%);
-    border-left: 0;
-    border-top: 1px solid var(--line);
-    border-radius: 16px 16px 0 0;
-    padding: 16px 14px calc(20px + env(safe-area-inset-bottom));
-    box-shadow: 0 -20px 60px -20px #000c;
-    animation: sheet-up 0.18s ease-out;
-  }
-  .detail-empty { display: none; }
-  .detail-close { display: grid; }
-
+  /* The player-card sheet itself comes from the tablet block above. */
   .stat-grid { gap: 6px; }
   .stat-value { font-size: 15px; }
 
